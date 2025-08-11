@@ -58,7 +58,7 @@ export function Sidebar() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-6 w-6">
             <rect width="256" height="256" fill="none"></rect>
@@ -66,6 +66,10 @@ export function Sidebar() {
           </svg>
           <span className="font-bold text-lg">Flow v3</span>
         </Link>
+        <Button variant="ghost" size="icon" onClick={handleShare}>
+            <Share2 className="h-5 w-5" />
+            <span className="sr-only">Share App</span>
+        </Button>
       </div>
       <nav className="flex-grow p-4">
         <ul className="space-y-2">
@@ -111,18 +115,6 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
-      <div className="p-4 mt-auto border-t">
-          <div className="grid grid-cols-2 gap-2">
-               <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="mr-2 h-4 w-4" />
-                   Share App
-               </Button>
-               <Button variant="outline" size="sm" onClick={handleCopyLink}>
-                   <Copy className="mr-2 h-4 w-4" />
-                   Copy Link
-               </Button>
-          </div>
-      </div>
     </div>
   );
 }
