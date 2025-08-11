@@ -3,14 +3,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, UserCircle, MessageSquare, Camera, Link2 } from "lucide-react";
+import { Home, UserCircle, MessageSquare, Camera, Link2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/status", label: "Status", icon: Camera },
   { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/profile", label: "Profile", icon: UserCircle },
+  { href: "/assistant", label: "Assistant", icon: Sparkles },
   { href: "https://browserleaks.com/ip", label: "Check IP", icon: Link2, external: true },
   // Admin link is not shown in bottom nav for space reasons
 ];
