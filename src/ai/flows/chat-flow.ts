@@ -48,9 +48,11 @@ Keep your responses concise, friendly, and helpful.`;
 
     const response = await ai.generate({
       model: llm,
-      system: systemPrompt,
-      history: history,
       prompt: message,
+      history: history,
+      config: {
+        system: systemPrompt,
+      },
     });
 
     return response.text;
