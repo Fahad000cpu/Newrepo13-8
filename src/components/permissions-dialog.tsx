@@ -15,7 +15,7 @@ import {
 import { BellRing, MapPin } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { requestNotificationPermission } from "@/lib/firebase-messaging";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
@@ -54,8 +54,22 @@ export function PermissionsDialog() {
     console.log("Requesting Geolocation permissions...");
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log("Location obtained:", position.coords.latitude, position.coords.longitude);
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log("Location obtained:", latitude, longitude);
+          // Save location to Firestore
+          const userRef = doc(db, "users", user.uid);
+          try {
+            await updateDoc(userRef, {
+                location: {
+                    lat: latitude,
+                    lon: longitude
+                }
+            });
+            console.log("User location saved to Firestore.");
+          } catch(error) {
+              console.error("Failed to save location:", error);
+          }
         },
         (error) => {
           console.error("Geolocation error:", error.message);
