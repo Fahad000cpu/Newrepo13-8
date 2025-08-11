@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setDoc(userRef, {
         name: displayName,
         email: email,
-        avatarUrl: `https://i.ibb.co/rfx9XnNX/file-000000000abc61f797839df146b53269.png`,
+        avatarUrl: `https://placehold.co/100x100.png`,
         bio: `Welcome to my Flow v3 profile!`,
         twitter: "",
         instagram: "",
