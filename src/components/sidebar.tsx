@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, UserCircle, MessageSquare, Shield, Camera, Link2, FileText, Share2, Copy, Star, Users } from "lucide-react";
+import { Home, UserCircle, MessageSquare, Shield, Camera, Link2, FileText, Share2, Copy, Star, Users, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ const navLinks = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/chat/create-group", label: "Create Group", icon: Users },
   { href: "/profile", label: "Profile", icon: UserCircle },
+  { href: "/assistant", label: "AI Assistant", icon: Sparkles },
   { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
   { href: "/terms", label: "Terms", icon: FileText },
   { href: "/privacy", label: "Privacy", icon: FileText },
