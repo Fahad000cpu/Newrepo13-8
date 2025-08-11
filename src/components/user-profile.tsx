@@ -94,6 +94,7 @@ export function UserProfile({ userId }: { userId: string }) {
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null)
 
   const [userInfo, setUserInfo] = useState<ProfileFormValues | null>(null);
 
@@ -145,72 +146,56 @@ export function UserProfile({ userId }: { userId: string }) {
   }
 
   async function getCroppedImg(
-    imageSrc: string,
-    pixelCrop: PixelCrop
+    image: HTMLImageElement,
+    crop: PixelCrop
   ): Promise<Blob | null> {
-    const image = new window.Image();
-    image.src = imageSrc;
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = reject;
-    });
-
     const canvas = document.createElement("canvas");
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
     
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
+    canvas.width = crop.width;
+    canvas.height = crop.height;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
   
-    const cropX = pixelCrop.x * scaleX;
-    const cropY = pixelCrop.y * scaleY;
+    const pixelRatio = window.devicePixelRatio;
+    canvas.width = crop.width * pixelRatio;
+    canvas.height = crop.height * pixelRatio;
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.imageSmoothingQuality = 'high';
 
     ctx.drawImage(
         image,
-        cropX,
-        cropY,
-        pixelCrop.width * scaleX,
-        pixelCrop.height * scaleY,
+        crop.x * scaleX,
+        crop.y * scaleY,
+        crop.width * scaleX,
+        crop.height * scaleY,
         0,
         0,
-        pixelCrop.width,
-        pixelCrop.height
+        crop.width,
+        crop.height
     );
 
     return new Promise((resolve) => {
         canvas.toBlob((blob) => {
-        resolve(blob);
-        }, "image/png");
+          if (blob) {
+            resolve(blob);
+          }
+        }, "image/png", 1);
     });
   }
 
   const handleCropSave = async () => {
-    if (!completedCrop || !imgSrc) return;
-    const croppedBlob = await getCroppedImg(imgSrc, completedCrop);
-    setCroppedImageBlob(croppedBlob);
-    
-    const objectUrl = URL.createObjectURL(croppedBlob as Blob);
-    form.setValue('avatarUrl', objectUrl, { shouldDirty: true });
-
-    setIsCropDialogOpen(false);
-    setIsEditDialogOpen(true); // Re-open the main edit dialog
-  }
-
-
-  async function onSubmit(data: ProfileFormValues) {
-    if (!isMyProfile) return;
+    if (!completedCrop || !imgRef.current) return;
     setIsUploading(true);
-    try {
-      const userRef = doc(db, "users", userId);
-      
-      let newAvatarUrl = data.avatarUrl;
 
-      if (croppedImageBlob) {
+    try {
+        const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
+        if(!croppedBlob) throw new Error('Cropping failed');
+
         const formData = new FormData();
-        const croppedFile = new File([croppedImageBlob], "avatar.png", { type: "image/png"});
+        const croppedFile = new File([croppedBlob], "avatar.png", { type: "image/png"});
         formData.append('file', croppedFile);
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
         
@@ -224,18 +209,49 @@ export function UserProfile({ userId }: { userId: string }) {
         }
 
         const cloudinaryData = await uploadResponse.json();
-        newAvatarUrl = cloudinaryData.secure_url;
-      }
+        const newAvatarUrl = cloudinaryData.secure_url;
 
-      await setDoc(userRef, { ...data, avatarUrl: newAvatarUrl }, { merge: true });
+        // Update firestore directly
+        const userRef = doc(db, "users", userId);
+        await setDoc(userRef, { avatarUrl: newAvatarUrl }, { merge: true });
+
+        toast({
+            title: "Avatar Updated!",
+            description: "Your new avatar has been saved.",
+        });
+
+        // Close dialog and reset states
+        setIsCropDialogOpen(false);
+        setImgSrc('');
+        setCroppedImageBlob(null);
+
+    } catch (error) {
+        console.error("Error updating avatar:", error);
+        toast({
+            title: "Error",
+            description: "Could not update your avatar. Please try again.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsUploading(false);
+    }
+  }
+
+
+  async function onSubmit(data: ProfileFormValues) {
+    if (!isMyProfile) return;
+    setIsUploading(true);
+    try {
+      const userRef = doc(db, "users", userId);
+      // Avatar is handled separately in handleCropSave, so we just save other data
+      const { avatarUrl, ...otherData } = data;
+      await setDoc(userRef, otherData, { merge: true });
 
       toast({
         title: "Profile Updated",
         description: "Your information has been successfully saved.",
       });
       setIsEditDialogOpen(false);
-      setCroppedImageBlob(null);
-      setImgSrc('');
     } catch (error) {
       console.error("Error updating profile:", error);
        toast({
@@ -425,45 +441,29 @@ export function UserProfile({ userId }: { userId: string }) {
                 )}
               />
               
-               <FormField
-                control={form.control}
-                name="avatarUrl"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Avatar</FormLabel>
-                        <div className="flex items-start gap-4">
-                            <Avatar className="h-24 w-24 border-2 border-dashed">
-                                <AvatarImage src={field.value ?? undefined} alt="Avatar preview" />
-                                <AvatarFallback>{userInfo.name?.substring(0,2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div className="w-full space-y-2">
-                                <Input 
-                                    placeholder="https://your-image-url.com/avatar.png" 
-                                    {...field} 
-                                    value={field.value ?? ""} 
-                                    onChange={(e) => {
-                                        field.onChange(e);
-                                        setCroppedImageBlob(null);
-                                    }}
-                                />
-                                <p className="text-xs text-center text-muted-foreground">OR</p>
-                                <Button type="button" variant="outline" className="w-full" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                                    <UploadCloud className="mr-2 h-4 w-4" />
-                                    Upload from Device
-                                </Button>
-                                <Input
-                                    id="avatar-upload"
-                                    type="file"
-                                    accept="image/png, image/jpeg, image/webp, image/gif"
-                                    className="hidden"
-                                    onChange={handleAvatarFileChange}
-                                />
-                            </div>
-                        </div>
-                        <FormMessage />
-                    </FormItem>
-                )}
-              />
+               <FormItem>
+                  <FormLabel>Avatar</FormLabel>
+                  <div className="flex items-center gap-4">
+                      <Avatar className="h-24 w-24 border-2 border-dashed">
+                          <AvatarImage src={userInfo.avatarUrl ?? undefined} alt="Avatar preview" />
+                          <AvatarFallback>{userInfo.name?.substring(0,2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="w-full">
+                          <Button type="button" variant="outline" className="w-full" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                              <UploadCloud className="mr-2 h-4 w-4" />
+                              Upload New Avatar
+                          </Button>
+                          <p className="text-xs text-center text-muted-foreground mt-2">Recommended: Square image under 5MB</p>
+                          <Input
+                              id="avatar-upload"
+                              type="file"
+                              accept="image/png, image/jpeg, image/webp, image/gif"
+                              className="hidden"
+                              onChange={handleAvatarFileChange}
+                          />
+                      </div>
+                  </div>
+              </FormItem>
 
                <h3 className="text-sm font-medium pt-2">Social Links</h3>
                 <FormField
@@ -552,7 +552,6 @@ export function UserProfile({ userId }: { userId: string }) {
           if(!open) {
               setImgSrc('');
               setIsCropDialogOpen(false);
-              setIsEditDialogOpen(true);
           }
       }}>
           <DialogContent>
@@ -569,12 +568,12 @@ export function UserProfile({ userId }: { userId: string }) {
                         aspect={1}
                         circularCrop
                         >
-                        <Image
+                        <img
+                            ref={imgRef}
                             src={imgSrc}
                             alt="Crop me"
                             onLoad={onImageLoad}
-                            fill
-                            style={{objectFit: 'contain'}}
+                            style={{ maxHeight: '70vh' }}
                         />
                     </ReactCrop>
                  </div>
@@ -582,10 +581,11 @@ export function UserProfile({ userId }: { userId: string }) {
               <DialogFooter>
                    <Button variant="secondary" onClick={() => {
                         setIsCropDialogOpen(false);
-                        setIsEditDialogOpen(true);
                         setImgSrc('');
                    }}>Cancel</Button>
-                   <Button onClick={handleCropSave}>Save Crop</Button>
+                   <Button onClick={handleCropSave} disabled={isUploading}>
+                    {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save and Upload</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
