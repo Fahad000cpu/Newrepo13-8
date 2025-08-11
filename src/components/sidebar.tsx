@@ -31,6 +31,14 @@ export function Sidebar() {
   const adminEmail = 'fahadkhanamrohivi@gmail.com';
   const isAdmin = user?.email === adminEmail;
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.origin);
+    toast({
+      title: "Link Copied!",
+      description: "The app link has been copied to your clipboard.",
+    });
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -40,20 +48,15 @@ export function Sidebar() {
           url: window.location.origin,
         });
       } catch (error) {
-        console.error("Error sharing:", error);
+        // We can ignore abort errors as they happen when the user closes the share sheet.
+        if ((error as Error).name !== 'AbortError') {
+          console.error("Error sharing:", error);
+        }
       }
     } else {
       // Fallback for browsers that do not support the Web Share API
       handleCopyLink();
     }
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.origin);
-    toast({
-      title: "Link Copied!",
-      description: "The app link has been copied to your clipboard.",
-    });
   };
 
   return (
