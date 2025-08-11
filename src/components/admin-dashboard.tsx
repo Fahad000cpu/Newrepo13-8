@@ -41,6 +41,10 @@ type UserPermissionData = {
     id: string;
     name: string;
     notificationToken?: string;
+    location?: {
+        lat: number;
+        lon: number;
+    }
 }
 
 const productFormSchema = z.object({
@@ -186,9 +190,10 @@ export function AdminDashboard() {
 
   return (
     <Tabs defaultValue="products">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="products">Manage Products</TabsTrigger>
-            <TabsTrigger value="users">User Data</TabsTrigger>
+            <TabsTrigger value="users">User Permissions</TabsTrigger>
+            <TabsTrigger value="locations">User Locations</TabsTrigger>
             <TabsTrigger value="notifications">Send Notification</TabsTrigger>
         </TabsList>
         <TabsContent value="products">
@@ -261,6 +266,52 @@ export function AdminDashboard() {
                                                 <Bell className="mr-1 h-3 w-3" />
                                                 {user.notificationToken ? `Subscribed (${user.notificationToken.substring(0,20)}...)` : 'Not Subscribed'}
                                             </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="locations">
+            <Card>
+                <CardHeader>
+                    <CardTitle>User Locations</CardTitle>
+                    <p className="text-sm text-muted-foreground">This data is collected once when a user grants permission.</p>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>User</TableHead>
+                                <TableHead>Location</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {userLoading ? (
+                                [...Array(3)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                userData.map(user => (
+                                    <TableRow key={user.id}>
+                                        <TableCell className="font-medium">{user.name}</TableCell>
+                                        <TableCell>
+                                            {user.location ? (
+                                                <Badge variant="secondary" className="font-mono">
+                                                    <MapPin className="mr-2 h-3 w-3" />
+                                                    {user.location.lat.toFixed(4)}, {user.location.lon.toFixed(4)}
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline">
+                                                    Not Available
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -404,3 +455,5 @@ export function AdminDashboard() {
     </Tabs>
   );
 }
+
+    
