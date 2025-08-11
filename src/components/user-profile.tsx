@@ -46,7 +46,7 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   bio: z.string().max(160, { message: "Bio cannot be more than 160 characters." }).optional(),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
   twitter: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   instagram: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   github: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
@@ -208,7 +208,7 @@ export function UserProfile({ userId }: { userId: string }) {
       
       let newAvatarUrl = data.avatarUrl;
 
-      if(croppedImageBlob) {
+      if (croppedImageBlob) {
         const formData = new FormData();
         const croppedFile = new File([croppedImageBlob], "avatar.png", { type: "image/png"});
         formData.append('file', croppedFile);
