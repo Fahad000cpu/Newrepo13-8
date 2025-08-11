@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Send, Loader2, Sparkles, User } from "lucide-react";
+import { Send, Loader2, Sparkles, User, Trash2 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { chat, type ChatMessage } from "@/ai/flows/chat-flow";
@@ -21,6 +21,8 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const CHAT_HISTORY_KEY = "ai-assistant-chat-history";
+
 export function AiAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +33,21 @@ export function AiAssistant() {
     resolver: zodResolver(formSchema),
     defaultValues: { message: "" },
   });
+  
+  // Load history from localStorage on initial render
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+      if (savedHistory) {
+        setMessages(JSON.parse(savedHistory));
+      }
+    } catch (error) {
+        console.error("Failed to parse chat history from localStorage", error);
+        // If parsing fails, start with a clean slate
+        localStorage.removeItem(CHAT_HISTORY_KEY);
+    }
+  }, []);
+
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -42,8 +59,19 @@ export function AiAssistant() {
   };
 
   useEffect(() => {
+    // Save history to localStorage whenever it changes
+    try {
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
+    } catch (error) {
+        console.error("Failed to save chat history to localStorage", error);
+    }
     scrollToBottom();
   }, [messages]);
+  
+  const handleClearChat = () => {
+    setMessages([]);
+    localStorage.removeItem(CHAT_HISTORY_KEY);
+  }
 
   async function onSubmit(data: FormValues) {
     const userMessage: ChatMessage = { role: "user", content: data.message };
@@ -58,14 +86,14 @@ export function AiAssistant() {
         message: data.message,
       });
       const aiMessage: ChatMessage = { role: "model", content: aiResponse };
-      setMessages([...newMessages, aiMessage]);
+      setMessages(prevMessages => [...prevMessages, aiMessage]);
     } catch (error) {
       console.error("AI chat error:", error);
       const errorMessage: ChatMessage = {
         role: "model",
         content: "Sorry, I'm having trouble connecting. Please try again later.",
       };
-      setMessages([...newMessages, errorMessage]);
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +101,23 @@ export function AiAssistant() {
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto py-4">
-      <header className="text-center mb-6">
+      <header className="text-center mb-6 relative">
         <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center justify-center gap-2">
             <Sparkles className="text-primary"/>
             AI Assistant
         </h1>
-        <p className="text-muted-foreground mt-2">Ask me anything about LinkShare!</p>
+        <p className="text-muted-foreground mt-2">Ask me anything about Flow v3!</p>
+        {messages.length > 0 && (
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-1/2 -translate-y-1/2 right-0"
+                onClick={handleClearChat}
+                aria-label="Clear chat history"
+            >
+                <Trash2 className="h-5 w-5 text-muted-foreground"/>
+            </Button>
+        )}
       </header>
       
       <ScrollArea className="flex-1 mb-4 pr-4" ref={scrollAreaRef}>
@@ -86,6 +125,7 @@ export function AiAssistant() {
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground p-8">
               <p>No messages yet. Start the conversation!</p>
+               <p className="text-xs mt-2">Your chat history is saved in your browser.</p>
             </div>
           )}
           {messages.map((message, index) => (
