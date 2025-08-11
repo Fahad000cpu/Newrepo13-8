@@ -42,46 +42,6 @@ import { useAuth } from "@/context/auth-context";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 
-
-const savedProducts: Product[] = [
-  {
-    id: "5",
-    name: "Wireless Charging Stand",
-    price: 55.0,
-    imageUrl: "https://placehold.co/600x600.png",
-    description: "Charge your devices in style with this sleek wooden wireless charging stand.",
-    likes: 840,
-    comments: 112,
-    tags: ["tech", "office"],
-    dataAiHint: "charging stand",
-  },
-  {
-    id: "6",
-    name: "Retro-Style Sunglasses",
-    price: 75.0,
-    imageUrl: "https://placehold.co/600x600.png",
-    description: "Protect your eyes with these timeless and stylish retro sunglasses.",
-    likes: 410,
-    comments: 55,
-    tags: ["fashion", "accessories"],
-    dataAiHint: "retro sunglasses",
-  },
-];
-
-const sharedProducts: Product[] = [
-  {
-    id: "2",
-    name: "Linen Throw Blanket",
-    price: 89.99,
-    imageUrl: "https://placehold.co/600x600.png",
-    description: "Cozy and breathable linen throw, perfect for any season.",
-    likes: 256,
-    comments: 34,
-    tags: ["home", "textiles"],
-    dataAiHint: "linen blanket",
-  },
-];
-
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   bio: z.string().max(160, { message: "Bio cannot be more than 160 characters." }).optional(),
@@ -402,39 +362,12 @@ export function UserProfile({ userId }: { userId: string }) {
             </div>
           </div>
         
-        {isBlocked ? (
+        {isBlocked && (
             <div className="text-center py-12 text-muted-foreground border bg-muted rounded-lg">
                 <Shield className="h-12 w-12 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold">User Blocked</h2>
                 <p className="mt-2">You have blocked this user. Unblock them to see their content.</p>
             </div>
-        ) : (
-            <Tabs defaultValue="saved" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
-                <TabsTrigger value="saved">Saved Products</TabsTrigger>
-                <TabsTrigger value="shared">My Shares</TabsTrigger>
-            </TabsList>
-            <TabsContent value="saved" className="mt-8">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                {savedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                ))}
-                </div>
-                {savedProducts.length === 0 && (
-                <p className="text-center text-muted-foreground py-12">No saved products yet.</p>
-                )}
-            </TabsContent>
-            <TabsContent value="shared" className="mt-8">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                {sharedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                ))}
-                </div>
-                {sharedProducts.length === 0 && (
-                <p className="text-center text-muted-foreground py-12">No shared products yet.</p>
-                )}
-            </TabsContent>
-            </Tabs>
         )}
       </div>
 
