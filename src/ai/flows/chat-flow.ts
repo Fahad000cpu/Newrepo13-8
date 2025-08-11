@@ -8,6 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import {z} from 'zod';
 
 const ChatMessageSchema = z.object({
@@ -43,7 +44,7 @@ Flow v3 is a social platform where users can discover, share, and purchase uniqu
 Your role is to assist users with their questions about the app, suggest products, and help them navigate its features.
 Keep your responses concise, friendly, and helpful.`;
 
-    const llm = ai.model('gemini-1.5-flash');
+    const llm = googleAI.model('gemini-1.5-flash');
 
     const response = await ai.generate({
       model: llm,
