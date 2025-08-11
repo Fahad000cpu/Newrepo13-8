@@ -183,7 +183,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   const handleShare = async () => {
     const shareData = {
       title: `Check out ${user.username}'s status!`,
-      text: `See what ${user.username} shared on LinkShare.`,
+      text: `See what ${user.username} shared on Flow v3.`,
       url: window.location.origin,
     };
     

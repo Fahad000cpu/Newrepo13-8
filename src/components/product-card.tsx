@@ -114,13 +114,13 @@ export function ProductCard({ product }: { product: Product }) {
                         <span>Copy Link</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                        <a href={`mailto:?subject=Check out this product!&body=I found this cool product on LinkShare: https://linkshare-app.com/product/${product.id}`}>
+                        <a href={`mailto:?subject=Check out this product!&body=I found this cool product on Flow v3: https://linkshare-app.com/product/${product.id}`}>
                             <Mail className="mr-2 h-4 w-4" />
                             <span>Share via Email</span>
                         </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                        <a href={`sms:?&body=Check out this product on LinkShare: https://linkshare-app.com/product/${product.id}`}>
+                        <a href={`sms:?&body=Check out this product on Flow v3: https://linkshare-app.com/product/${product.id}`}>
                             <MessageSquare className="mr-2 h-4 w-4" />
                             <span>Share via SMS</span>
                         </a>

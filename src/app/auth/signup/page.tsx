@@ -8,7 +8,7 @@ export default function SignUpPage() {
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <CardTitle>Create an Account</CardTitle>
-                    <CardDescription>Join LinkShare to discover and share amazing products.</CardDescription>
+                    <CardDescription>Join Flow v3 to discover and share amazing products.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <SignUpForm />

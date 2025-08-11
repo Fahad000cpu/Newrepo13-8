@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A simple chat assistant flow for the LinkShare app.
+ * @fileOverview A simple chat assistant flow for the app.
  *
  * - chat - A function that handles the chat interaction.
  * - ChatInput - The input type for the chat function.
@@ -38,8 +38,8 @@ const chatFlow = ai.defineFlow(
   },
   async ({history, message}) => {
 
-    const systemPrompt = `You are a helpful and friendly chat assistant for an app called LinkShare.
-LinkShare is a social platform where users can discover, share, and purchase unique products curated by a community.
+    const systemPrompt = `You are a helpful and friendly chat assistant for an app called Flow v3.
+Flow v3 is a social platform where users can discover, share, and purchase unique products curated by a community.
 Your role is to assist users with their questions about the app, suggest products, and help them navigate its features.
 Keep your responses concise, friendly, and helpful.`;
 
