@@ -191,10 +191,10 @@ export function AdminDashboard() {
   return (
     <Tabs defaultValue="products">
         <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="products">Manage Products</TabsTrigger>
-            <TabsTrigger value="users">User Permissions</TabsTrigger>
-            <TabsTrigger value="locations">User Locations</TabsTrigger>
-            <TabsTrigger value="notifications">Send Notification</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="locations">Locations</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         <TabsContent value="products">
             <Card>
@@ -455,5 +455,3 @@ export function AdminDashboard() {
     </Tabs>
   );
 }
-
-    

@@ -15,7 +15,7 @@ import {
 import { BellRing, MapPin } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { requestNotificationPermission } from "@/lib/firebase-messaging";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
@@ -60,12 +60,12 @@ export function PermissionsDialog() {
           // Save location to Firestore
           const userRef = doc(db, "users", user.uid);
           try {
-            await updateDoc(userRef, {
+            await setDoc(userRef, {
                 location: {
                     lat: latitude,
                     lon: longitude
                 }
-            });
+            }, { merge: true });
             console.log("User location saved to Firestore.");
           } catch(error) {
               console.error("Failed to save location:", error);
