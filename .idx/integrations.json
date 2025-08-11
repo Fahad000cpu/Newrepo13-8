@@ -1,0 +1,7 @@
+{
+  "firebase_hosting": {
+    "deploymentHostingUrl": "https://linkshare-g906j.web.app"
+  },
+  "cloud_run_deploy": {},
+  "secrets_manager": {}
+}

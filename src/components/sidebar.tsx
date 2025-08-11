@@ -1,0 +1,127 @@
+// src/components/sidebar.tsx
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, UserCircle, MessageSquare, Shield, Camera, Link2, FileText, Share2, Copy, Star, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/auth-context";
+
+const navLinks = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/status", label: "Status", icon: Camera },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/chat/create-group", label: "Create Group", icon: Users },
+  { href: "/profile", label: "Profile", icon: UserCircle },
+  { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
+  { href: "/terms", label: "Terms", icon: FileText },
+  { href: "/privacy", label: "Privacy", icon: FileText },
+  { href: "https://browserleaks.com/ip", label: "Check IP", icon: Link2, external: true },
+  { href: "https://amropedia.wordpress.com", label: "Ad Website", icon: Star, external: true },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  
+  const adminEmail = 'fahadkhanamrohivi@gmail.com';
+  const isAdmin = user?.email === adminEmail;
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "LinkShare",
+          text: "Check out LinkShare, where you can discover and share amazing products!",
+          url: window.location.origin,
+        });
+      } catch (error) {
+        console.error("Error sharing:", error);
+      }
+    } else {
+      // Fallback for browsers that do not support the Web Share API
+      handleCopyLink();
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.origin);
+    toast({
+      title: "Link Copied!",
+      description: "The app link has been copied to your clipboard.",
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <Link href="/" className="flex items-center space-x-2">
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-6 w-6">
+            <rect width="256" height="256" fill="none"></rect>
+            <path d="M128,24a104,104,0,1,0,104,104A104.2,104.2,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a48,48,0,1,1-48-48,48,48,0,0,1,48,48Z" fill="currentColor" className="text-primary-foreground/80"></path>
+          </svg>
+          <span className="font-bold text-lg">LinkShare</span>
+        </Link>
+      </div>
+      <nav className="flex-grow p-4">
+        <ul className="space-y-2">
+          {navLinks.map(({ href, label, icon: Icon, external, adminOnly }) => {
+            if (adminOnly && !isAdmin) return null;
+
+            const isActive = !external && (href === "/" ? pathname === href : pathname.startsWith(href));
+            const linkContent = (
+              <>
+                <Icon className="h-4 w-4" />
+                {label}
+              </>
+            );
+
+            if (external) {
+              return (
+                 <li key={label}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                    >
+                      {linkContent}
+                    </a>
+                  </li>
+              )
+            }
+
+            return (
+              <li key={label}>
+                <Link
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                    isActive && "bg-muted text-primary"
+                  )}
+                >
+                  {linkContent}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+      <div className="p-4 mt-auto border-t">
+          <div className="grid grid-cols-2 gap-2">
+               <Button variant="outline" size="sm" onClick={handleShare}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                   Share App
+               </Button>
+               <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                   <Copy className="mr-2 h-4 w-4" />
+                   Copy Link
+               </Button>
+          </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 210 20% 15%;
+    --card: 210 20% 98%;
+    --card-foreground: 210 20% 15%;
+    --popover: 210 20% 98%;
+    --popover-foreground: 210 20% 15%;
+    --primary: 160 50% 50%;
+    --primary-foreground: 210 20% 5%;
+    --secondary: 210 15% 90%;
+    --secondary-foreground: 210 15% 25%;
+    --muted: 210 15% 95%;
+    --muted-foreground: 210 10% 45%;
+    --accent: 160 50% 85%;
+    --accent-foreground: 160 50% 15%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 15% 88%;
+    --input: 210 15% 88%;
+    --ring: 160 50% 50%;
+    --chart-1: 160 70% 40%;
+    --chart-2: 200 70% 50%;
+    --chart-3: 40 70% 50%;
+    --chart-4: 280 70% 60%;
+    --chart-5: 340 70% 60%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 210 20% 10%;
+    --foreground: 210 20% 95%;
+    --card: 210 20% 12%;
+    --card-foreground: 210 20% 95%;
+    --popover: 210 20% 10%;
+    --popover-foreground: 210 20% 95%;
+    --primary: 160 50% 50%;
+    --primary-foreground: 210 20% 5%;
+    --secondary: 210 15% 20%;
+    --secondary-foreground: 210 15% 80%;
+    --muted: 210 15% 15%;
+    --muted-foreground: 210 10% 65%;
+    --accent: 160 50% 25%;
+    --accent-foreground: 160 50% 90%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 15% 25%;
+    --input: 210 15% 25%;
+    --ring: 160 50% 50%;
+    --chart-1: 160 70% 40%;
+    --chart-2: 200 70% 50%;
+    --chart-3: 40 70% 50%;
+    --chart-4: 280 70% 60%;
+    --chart-5: 340 70% 60%;
+  }
+  .rainbow body {
+    background: linear-gradient(-45deg, #fde0e0, #e0f7de, #e0e0fd, #fdfde0);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
