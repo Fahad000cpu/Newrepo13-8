@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, PlusCircle, Search, Sparkles } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 

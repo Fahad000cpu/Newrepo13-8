@@ -6,13 +6,12 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBIcz7mSDzIwB7U9LorPbIIGPBUntoxnRs",
-  authDomain: "linkshare-g906j.firebaseapp.com",
-  databaseURL: "https://linkshare-g906j-default-rtdb.firebaseio.com",
-  projectId: "linkshare-g906j",
-  storageBucket: "linkshare-g906j.appspot.com",
-  messagingSenderId: "64008378258",
-  appId: "1:64008378258:web:3d8f999d08cc56088ad34b"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
