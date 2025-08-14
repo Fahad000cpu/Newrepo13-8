@@ -1,65 +1,61 @@
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users
+    // Users:
+    // - Any authenticated user can read public user profiles.
+    // - A user can only write to their own document.
     match /users/{userId} {
-      // Any logged-in user can read public user profiles
-      allow get: if request.auth != null;
-      // Only the user themselves can update their own data
-      allow list, write: if request.auth != null && request.auth.uid == userId;
+      allow get, list: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Notifications are private to the user
+      // Notifications are private to each user.
       match /notifications/{notificationId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Products
+    // Products:
+    // - Any authenticated user can read products.
+    // - Only the admin can create, update, or delete products.
     match /products/{productId} {
-      // Any logged-in user can view products
       allow read: if request.auth != null;
-      // Only admins can create, update, or delete products
       allow write: if request.auth != null && request.auth.token.email == 'fahadkhanamrohivi@gmail.com';
     }
 
-    // Statuses
+    // Statuses:
+    // - Any authenticated user can create or read statuses.
     match /statuses/{statusId} {
-      // Any logged-in user can create a status or read any status
       allow read, create: if request.auth != null;
-      
-      // Anyone can like a status (write to the subcollection)
+
+      // Any authenticated user can like a status.
       match /likes/{likeId} {
         allow read, write: if request.auth != null;
       }
     }
-    
-    // One-on-one Chats
-    match /chats/{chatId} {
-      // Allow access only if the user is a member of the chat
-      // This rule assumes the chatId is formatted as 'userId1_userId2'
-      allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
 
-      match /messages/{messageId} {
-        // Allow message read/create if user is part of the chat
-        allow read, create: if request.auth != null && request.auth.uid in chatId.split('_');
-        // Allow a user to delete their own message
-        allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
-      }
+    // 1-on-1 Chats:
+    // - Only the two users in the chat can read or write messages.
+    // - The chatId must be a combination of the two user UIDs, sorted.
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, create, delete: if request.auth != null && request.auth.uid in chatId.split('_');
     }
-    
-    // Group Chats
+
+    // Groups:
+    // - A user must be authenticated to create a group.
+    // - Only members of a group can read or update it.
     match /groups/{groupId} {
-      // Allow create for any logged-in user
       allow create: if request.auth != null;
-      // Allow read/update only for members of the group
-      allow read, update: if request.auth != null && resource.data.members.hasAny([request.auth.uid]);
+      allow read, update: if request.auth != null && request.auth.uid in resource.data.members;
       
+      // Group Messages:
+      // - Only group members can read or create messages.
+      // - A user can only delete their own message.
       match /messages/{messageId} {
-        // Allow members to read/create messages
-        allow read, create: if request.auth != null && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
-        // Allow members to delete their own messages
-        allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
+        allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        allow delete: if request.auth != null && request.resource.data.senderId == request.auth.uid;
       }
     }
   }
