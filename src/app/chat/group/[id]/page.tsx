@@ -21,8 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-const NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_CLOUD_NAME = "dhbytckit";
+const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
 
 const settingsFormSchema = z.object({
     groupName: z.string().min(3, "Name must be at least 3 characters."),
@@ -146,9 +146,9 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         if (iconFile) {
             const formData = new FormData();
             formData.append('file', iconFile);
-            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
             
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/image/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -231,10 +231,10 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         if (attachment) {
             const formData = new FormData();
             formData.append('file', attachment.file);
-            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
             
             const resourceType = attachment.type;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });

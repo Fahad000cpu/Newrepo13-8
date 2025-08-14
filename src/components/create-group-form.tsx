@@ -20,8 +20,8 @@ import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 import Image from 'next/image';
 
-const NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_CLOUD_NAME = "dhbytckit";
+const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
 
 const createGroupFormSchema = z.object({
     groupName: z.string().min(3, { message: "Group name must be at least 3 characters." }),
@@ -104,9 +104,9 @@ export function CreateGroupForm() {
             if (iconFile) {
                 const formData = new FormData();
                 formData.append('file', iconFile);
-                formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
                 
-                const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/image/upload`, {
+                const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
                     method: 'POST',
                     body: formData,
                 });
