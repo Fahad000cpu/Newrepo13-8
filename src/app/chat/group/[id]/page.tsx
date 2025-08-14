@@ -142,7 +142,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
             formData.append('file', iconFile);
             formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
             
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/image/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -231,7 +231,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
             formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
             
             const resourceType = attachment.type;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
