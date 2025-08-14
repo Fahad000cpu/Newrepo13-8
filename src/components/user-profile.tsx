@@ -1,3 +1,4 @@
+
 // src/components/user-profile.tsx
 
 "use client";
@@ -6,14 +7,13 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Edit, Mail, Link as LinkIcon, Twitter, Instagram, Github, Palette, Youtube, Facebook, Shield, ShieldOff, UploadCloud, X, Loader2, Star } from "lucide-react";
+import { Edit, Mail, Link as LinkIcon, Twitter, Instagram, Github, Palette, Youtube, Facebook, Shield, ShieldOff, UploadCloud, X, Loader2, Star, BadgeCheck, Crown } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Product } from "@/types";
-import { ProductCard } from "./product-card";
 import { Button } from "./ui/button";
+import { Progress } from "./ui/progress";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,7 @@ import { Skeleton } from "./ui/skeleton";
 import { useAuth } from "@/context/auth-context";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
+import { Badge } from "./ui/badge";
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -52,6 +53,7 @@ const profileFormSchema = z.object({
   github: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   youtube: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   facebook: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  totalLikes: z.number().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -80,6 +82,31 @@ function centerAspectCrop(
   )
 }
 
+const XIcon = (props: any) => (
+    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+    </svg>
+);
+
+const ProfileInfoRow = ({ icon, label, value, isLink=false }: { icon: React.ReactNode, label: string, value: string | undefined | null, isLink?: boolean }) => {
+    if (!value) return null;
+    return (
+        <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 w-24 text-muted-foreground">
+                {icon}
+                <span>{label}</span>
+            </div>
+            {isLink ? (
+                 <a href={value} target="_blank" rel="noopener noreferrer" className="truncate text-primary hover:underline">
+                    {value.replace(/^(https?:\/\/)?(www\.)?/i, '')}
+                </a>
+            ) : (
+                <span className="text-foreground">{value}</span>
+            )}
+           
+        </div>
+    )
+}
 
 export function UserProfile({ userId }: { userId: string }) {
   const { toast } = useToast();
@@ -211,7 +238,6 @@ export function UserProfile({ userId }: { userId: string }) {
         const cloudinaryData = await uploadResponse.json();
         const newAvatarUrl = cloudinaryData.secure_url;
 
-        // Update firestore directly
         const userRef = doc(db, "users", userId);
         await setDoc(userRef, { avatarUrl: newAvatarUrl }, { merge: true });
 
@@ -220,7 +246,6 @@ export function UserProfile({ userId }: { userId: string }) {
             description: "Your new avatar has been saved.",
         });
 
-        // Close dialog and reset states
         setIsCropDialogOpen(false);
         setImgSrc('');
         setCroppedImageBlob(null);
@@ -243,7 +268,6 @@ export function UserProfile({ userId }: { userId: string }) {
     setIsUploading(true);
     try {
       const userRef = doc(db, "users", userId);
-      // Avatar is handled separately in handleCropSave, so we just save other data
       const { avatarUrl, ...otherData } = data;
       await setDoc(userRef, otherData, { merge: true });
 
@@ -283,13 +307,7 @@ export function UserProfile({ userId }: { userId: string }) {
       toast({ title: "Error unblocking user", variant: "destructive"})
     }
   }
-
-  const XIcon = (props: any) => (
-    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
-      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
-    </svg>
-  );
-
+  
   if (loading || !userInfo) {
      return (
         <div className="container mx-auto px-4 py-8">
@@ -305,32 +323,26 @@ export function UserProfile({ userId }: { userId: string }) {
     );
   }
 
+  const LEGEND_THRESHOLD = 1000;
+  const isLegend = (userInfo.totalLikes ?? 0) >= LEGEND_THRESHOLD;
+  const progressValue = Math.min(((userInfo.totalLikes ?? 0) / LEGEND_THRESHOLD) * 100, 100);
 
   return (
     <>
-      <div className="container mx-auto px-4 py-8">
-        
-          <div className="flex flex-col items-center space-y-4 mb-10">
-            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="flex flex-col md:flex-row items-center gap-8 mb-10">
+            <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
               <AvatarImage src={userInfo.avatarUrl} alt={userInfo.name} />
               <AvatarFallback>{userInfo.name?.substring(0,2).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <div className="text-center">
-              <h1 className="font-headline text-3xl font-bold">{userInfo.name}</h1>
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                 <h1 className="font-headline text-3xl font-bold">{userInfo.name}</h1>
+                 {isLegend && <Badge variant="destructive" className="gap-1.5 pr-3"><Crown className="h-4 w-4"/> Legend</Badge>}
+              </div>
               <p className="text-muted-foreground mt-1 max-w-prose">{userInfo.bio}</p>
-              <a href={`mailto:${userInfo.email}`} className="text-sm text-muted-foreground hover:text-primary flex items-center justify-center gap-1 mt-2">
-                  <Mail className="h-4 w-4" />
-                  {userInfo.email}
-              </a>
-            </div>
-            <div className="flex items-center gap-4 mt-2">
-              {userInfo.twitter && <a href={userInfo.twitter} target="_blank" rel="noopener noreferrer"><XIcon className="h-5 w-5 text-muted-foreground hover:text-primary fill-current"/></a>}
-              {userInfo.instagram && <a href={userInfo.instagram} target="_blank" rel="noopener noreferrer"><Instagram className="h-5 w-5 text-muted-foreground hover:text-primary"/></a>}
-              {userInfo.github && <a href={userInfo.github} target="_blank" rel="noopener noreferrer"><Github className="h-5 w-5 text-muted-foreground hover:text-primary"/></a>}
-              {userInfo.youtube && <a href={userInfo.youtube} target="_blank" rel="noopener noreferrer"><Youtube className="h-5 w-5 text-muted-foreground hover:text-primary"/></a>}
-              {userInfo.facebook && <a href={userInfo.facebook} target="_blank" rel="noopener noreferrer"><Facebook className="h-5 w-5 text-muted-foreground hover:text-primary"/></a>}
-            </div>
-            <div className="flex gap-2">
+              
+               <div className="flex items-center justify-center md:justify-start gap-2 mt-4">
               {isMyProfile ? (
                  <>
                     <Button variant="outline" onClick={() => {
@@ -376,13 +388,53 @@ export function UserProfile({ userId }: { userId: string }) {
                 )
               )}
             </div>
-          </div>
+            </div>
+        </div>
         
-        {isBlocked && (
+        {isBlocked ? (
             <div className="text-center py-12 text-muted-foreground border bg-muted rounded-lg">
                 <Shield className="h-12 w-12 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold">User Blocked</h2>
                 <p className="mt-2">You have blocked this user. Unblock them to see their content.</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-1 space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>About</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <ProfileInfoRow icon={<Mail className="h-4 w-4"/>} label="Email" value={userInfo.email} />
+                            <ProfileInfoRow icon={<XIcon className="h-4 w-4 fill-current"/>} label="X (Twitter)" value={userInfo.twitter} isLink />
+                            <ProfileInfoRow icon={<Instagram className="h-4 w-4"/>} label="Instagram" value={userInfo.instagram} isLink />
+                            <ProfileInfoRow icon={<Github className="h-4 w-4"/>} label="GitHub" value={userInfo.github} isLink />
+                            <ProfileInfoRow icon={<Youtube className="h-4 w-4"/>} label="YouTube" value={userInfo.youtube} isLink />
+                            <ProfileInfoRow icon={<Facebook className="h-4 w-4"/>} label="Facebook" value={userInfo.facebook} isLink />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Reputation</CardTitle>
+                            <CardDescription>Reach 1,000 likes to achieve Legend status!</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="space-y-2">
+                                <Progress value={progressValue} className="h-2"/>
+                                <p className="text-sm text-muted-foreground text-right">{userInfo.totalLikes ?? 0} / {LEGEND_THRESHOLD} Likes</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="md:col-span-2">
+                     <h2 className="text-2xl font-bold mb-4">Content</h2>
+                    {/* Placeholder for user's shared products or content */}
+                    <div className="text-center py-12 text-muted-foreground border-2 border-dashed bg-muted rounded-lg">
+                        <p>No content shared yet.</p>
+                    </div>
+                </div>
             </div>
         )}
       </div>

@@ -11,7 +11,7 @@ import { YoutubePlayer } from "./youtube-player";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { doc, runTransaction, serverTimestamp, collection, addDoc, getDoc } from "firebase/firestore";
+import { doc, runTransaction, serverTimestamp, collection, addDoc, getDoc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 
@@ -140,23 +140,31 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
     try {
       const statusRef = doc(db, "statuses", currentStory.id);
       const likeRef = doc(db, "statuses", currentStory.id, "likes", currentUser.uid);
+      const statusOwnerRef = doc(db, "users", user.userId);
 
       await runTransaction(db, async (transaction) => {
+        const likeDoc = await transaction.get(likeRef);
+        if(likeDoc.exists()) return; // Already liked, do nothing
+
         const statusDoc = await transaction.get(statusRef);
         if (!statusDoc.exists()) throw "Status does not exist!";
         
-        const likeDoc = await transaction.get(likeRef);
-        if(likeDoc.exists()) return;
+        const ownerDoc = await transaction.get(statusOwnerRef);
+        if (!ownerDoc.exists()) throw "Status owner does not exist!";
 
         const currentLikes = statusDoc.data().likes || 0;
         transaction.update(statusRef, { likes: currentLikes + 1 });
+        
+        const currentTotalLikes = ownerDoc.data().totalLikes || 0;
+        transaction.update(statusOwnerRef, { totalLikes: currentTotalLikes + 1 });
+        
         transaction.set(likeRef, { likedAt: serverTimestamp() });
         
         const currentUserData = (await getDoc(doc(db, "users", currentUser.uid))).data();
 
         if (currentUserData) {
             const notificationsRef = collection(db, "users", user.userId, "notifications");
-            await addDoc(notificationsRef, {
+            addDoc(notificationsRef, { // Don't await this inside transaction
                 fromUserId: currentUser.uid,
                 fromUserName: currentUserData.name || "A user",
                 fromUserAvatar: currentUserData.avatarUrl || "",

@@ -1,3 +1,4 @@
+
 // src/components/notifications.tsx
 "use client";
 
@@ -14,7 +15,7 @@ import {
 } from "./ui/dropdown-menu";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, orderBy, limit, Timestamp } from "firebase/firestore";
+import { collection, query, onSnapshot, orderBy, limit, Timestamp, writeBatch, where, getDocs, doc } from "firebase/firestore";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -38,7 +39,6 @@ export function Notifications() {
   useEffect(() => {
     if (!user) return;
 
-    // Correctly query the sub-collection for the logged-in user
     const notifsRef = collection(db, "users", user.uid, "notifications");
     const q = query(
         notifsRef,
@@ -58,6 +58,25 @@ export function Notifications() {
     return () => unsubscribe();
   }, [user]);
 
+  const handleMarkAsRead = async () => {
+    if (!user || unreadCount === 0) return;
+
+    const notifsRef = collection(db, "users", user.uid, "notifications");
+    const q = query(notifsRef, where("isRead", "==", false));
+    
+    try {
+        const querySnapshot = await getDocs(q);
+        const batch = writeBatch(db);
+        querySnapshot.forEach(docSnapshot => {
+            const docRef = doc(db, "users", user.uid, "notifications", docSnapshot.id);
+            batch.update(docRef, { isRead: true });
+        });
+        await batch.commit();
+    } catch(error) {
+        console.error("Error marking notifications as read:", error);
+    }
+  };
+
   const getIcon = (type: Notification['type']) => {
     switch (type) {
       case "like": return <Heart className="h-4 w-4 text-red-500" />;
@@ -68,11 +87,12 @@ export function Notifications() {
     }
   }
 
-  // In a real app, you would handle marking notifications as read
-  // when the dropdown is opened or a notification is clicked.
-
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(isOpen) => {
+        if (isOpen) {
+            handleMarkAsRead();
+        }
+    }}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />

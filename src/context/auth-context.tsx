@@ -1,3 +1,4 @@
+
 // src/context/auth-context.tsx
 "use client";
 
@@ -22,6 +23,7 @@ interface UserData extends DocumentData {
     blockedUsers?: string[];
     blockedBy?: string[];
     permissionsRequested?: boolean;
+    totalLikes?: number;
 }
 
 interface AuthContextType {
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         blockedUsers: [],
         blockedBy: [],
         permissionsRequested: false, // Initialize permission status
+        totalLikes: 0, // Initialize total likes
       });
 
       setUser(userCredential.user);
