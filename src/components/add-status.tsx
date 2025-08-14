@@ -24,13 +24,13 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 const imageSchema = z.object({
     type: z.literal('image'),
-    file: z.instanceof(FileList).refine(files => files?.length === 1, "File is required.").refine(files => files?.[0]?.size <= MAX_IMAGE_SIZE, `Max image size is 10MB.`).refine(files => ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(files?.[0]?.type), "Only .jpg, .png, .webp, and .gif formats are supported."),
+    file: z.any().refine((files) => files?.length === 1, "File is required.").refine((files) => files?.[0]?.size <= MAX_IMAGE_SIZE, `Max image size is 10MB.`).refine((files) => ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(files?.[0]?.type), "Only .jpg, .png, .webp, and .gif formats are supported."),
     youtubeLink: z.string().optional(),
 });
 
 const videoSchema = z.object({
     type: z.literal('video'),
-    file: z.instanceof(FileList).refine(files => files?.length === 1, "File is required.").refine(files => files?.[0]?.size <= MAX_VIDEO_SIZE, `Max video size is 50MB.`).refine(files => ["video/mp4", "video/quicktime", "video/webm"].includes(files?.[0]?.type), "Only .mp4, .mov, and .webm formats are supported."),
+    file: z.any().refine((files) => files?.length === 1, "File is required.").refine((files) => files?.[0]?.size <= MAX_VIDEO_SIZE, `Max video size is 50MB.`).refine((files) => ["video/mp4", "video/quicktime", "video/webm"].includes(files?.[0]?.type), "Only .mp4, .mov, and .webm formats are supported."),
     youtubeLink: z.string().optional(),
 });
 
@@ -211,6 +211,7 @@ export function AddStatus() {
       form.reset({
         type: newType,
         file: new DataTransfer().files,
+        youtubeLink: "",
       });
     }
     resetPreview();
