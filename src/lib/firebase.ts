@@ -1,4 +1,3 @@
-
 // src/lib/firebase.ts
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -16,7 +15,10 @@ const firebaseConfig = {
 
 // Log the project ID to the browser console to help debug connection issues.
 if (typeof window !== 'undefined') {
-  console.log("Connecting to Firebase project:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  console.log("Attempting to connect to Firebase project:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+    console.error("FIREBASE CONNECTION FAILED: NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing in Vercel environment variables.");
+  }
 }
 
 // Initialize Firebase
