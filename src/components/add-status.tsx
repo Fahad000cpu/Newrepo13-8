@@ -45,8 +45,8 @@ const statusFormSchema = z.discriminatedUnion("type", [imageSchema, videoSchema,
 type StatusFormValues = z.infer<typeof statusFormSchema>;
 
 
-const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
+const NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 function getYoutubeVideoId(url: string): string | null {
     if (!url) return null;
@@ -66,7 +66,7 @@ export function AddStatus() {
 
   const form = useForm<StatusFormValues>({
     resolver: zodResolver(statusFormSchema),
-    defaultValues: { type: "image", youtubeLink: "" }
+    defaultValues: { type: "image" }
   });
   
   const youtubeLinkValue = form.watch('youtubeLink');
@@ -146,10 +146,10 @@ export function AddStatus() {
             
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
             
             const resourceType = statusType;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -201,10 +201,18 @@ export function AddStatus() {
     const newType = value as 'image' | 'video' | 'youtube';
     setActiveTab(newType);
     
-    form.reset({
-      type: newType,
-      youtubeLink: "",
-    });
+    // Reset form with appropriate defaults for the selected type
+    if (newType === 'youtube') {
+      form.reset({
+        type: 'youtube',
+        youtubeLink: "",
+      });
+    } else {
+      form.reset({
+        type: newType,
+        file: new DataTransfer().files,
+      });
+    }
     resetPreview();
   };
 
