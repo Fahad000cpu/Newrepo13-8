@@ -76,10 +76,15 @@ export default function Home() {
   });
   
   useEffect(() => {
+    setLoading(true);
     const productsCol = collection(db, "products");
     const unsubscribe = onSnapshot(productsCol, (snapshot) => {
         const productList = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Product[];
         setProducts(productList);
+        setLoading(false);
+    }, (error) => {
+        console.error("Firestore snapshot error:", error);
+        // This might happen if rules deny access. We still want to stop loading.
         setLoading(false);
     });
 
@@ -233,7 +238,7 @@ export default function Home() {
         <div className="text-center py-20 px-4">
             <h2 className="text-2xl font-semibold mb-2">No Products Found</h2>
             <p className="text-muted-foreground">
-                {searchTerm ? `Your search for "${searchTerm}" did not match any products.` : 'Click the "Add New" button to add your first product!'}
+                {searchTerm ? `Your search for "${searchTerm}" did not match any products.` : 'No products have been added yet. Come back soon!'}
             </p>
         </div>
       )}

@@ -2,59 +2,47 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // USERS
-    // Any authenticated user can read public user data for profiles, find friends etc.
-    // A user can only write to their own document.
+    // Users can read public profiles, but only write to their own document.
     match /users/{userId} {
-      allow get: if request.auth != null;
-      allow list: if request.auth != null; // Needed for Find Friends
-      allow write: if request.auth.uid == userId;
-
-      // Users can manage their own notifications subcollection
+      allow get, list: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can manage their own notifications.
       match /notifications/{notificationId} {
-        allow read, write: if request.auth.uid == userId;
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // PRODUCTS
-    // Any authenticated user can read products.
-    // Only the admin can write/delete products.
+    // Products can be read by ANYONE (even logged out), but only admin can write.
     match /products/{productId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if request.auth != null && request.auth.token.email == 'fahadkhanamrohivi@gmail.com';
     }
 
-    // STATUSES
-    // Any authenticated user can create a status.
-    // Any authenticated user can read statuses.
-    // Users can only interact with (like) a status, not delete it unless they are the owner (future feature).
+    // Statuses can be created/read by any authenticated user.
     match /statuses/{statusId} {
       allow read, create: if request.auth != null;
-      // Allow users to like any status
       match /likes/{likeId} {
-        allow read, write: if request.auth != null;
+      	allow read, write: if request.auth != null;
       }
     }
-
-    // CHATS (1-on-1)
-    // To read/write messages, the user's ID must be in the document ID, which is a combination of both user IDs.
-    match /chats/{chatId}/messages/{messageId} {
-       allow read, create, delete: if request.auth != null && request.auth.uid in chatId.split('_');
-    }
-
-    // GROUPS
-    // Users can read/update a group document if they are a member.
-    // Any authenticated user can create a new group.
+    
+    // Groups can be created by any authenticated user.
+    // Only members can read/update the group or read/write messages.
     match /groups/{groupId} {
-      allow get, update: if request.auth != null && resource.data.members.hasAny([request.auth.uid]);
+    	allow read, update: if request.auth != null && request.auth.uid in resource.data.members;
       allow create: if request.auth != null;
-      allow list: if request.auth != null; // Needed for chat list
-
-      // Users can read/create/delete messages in a group if they are a member.
+      
       match /messages/{messageId} {
-        allow read, create: if request.auth != null && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      	allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
         allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
       }
+    }
+    
+    // Chat messages can only be read/written by the two users involved in the chat.
+    match /chats/{chatId}/messages/{messageId} {
+    	allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
+      allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
     }
   }
 }
