@@ -187,7 +187,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
       url: window.location.origin,
     };
     
-    const canShare = navigator.share && window.location.protocol.startsWith('https');
+    const canShare = !!navigator.share && window.location.protocol.startsWith('https');
 
     try {
       if (canShare) {
