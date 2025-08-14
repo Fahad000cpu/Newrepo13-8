@@ -158,10 +158,10 @@ export function AddStatus() {
             
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
             
             const resourceType = statusType;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -222,7 +222,7 @@ export function AddStatus() {
     } else {
       form.reset({
         type: newType,
-        file: new DataTransfer().files,
+        file: undefined,
         youtubeLink: "",
       });
     }
