@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Search, LocateFixed, User, Loader2 } from "lucide-react";
+import { MessageSquare, Search, LocateFixed, User, Loader2, Sparkles } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
@@ -24,6 +24,13 @@ type UserData = {
   };
   distance?: number;
 }
+
+const aiBotUser: UserData = {
+    id: "ai-bot",
+    name: "Flow AI Bot",
+    avatarUrl: "https://placehold.co/100x100/D0BFFF/333333.png?text=AI",
+    bio: "I can help you find products and answer questions!",
+};
 
 
 // Haversine distance formula
@@ -60,9 +67,12 @@ export function FindFriends() {
         try {
             const usersCol = collection(db, "users");
             const userSnapshot = await getDocs(usersCol);
-            const userList = userSnapshot.docs
+            let userList = userSnapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as UserData))
                 .filter(u => u.id !== currentUser?.uid); // Filter out the current user
+
+            // Add the AI bot to the list
+            userList = [aiBotUser, ...userList];
 
             if ("geolocation" in navigator) {
                 setLocationStatus("loading");
@@ -75,7 +85,12 @@ export function FindFriends() {
                             distance: user.location ? getDistance(latitude, longitude, user.location.lat, user.location.lon) : undefined
                             }))
                             .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-                        setUsers(sortedUsers);
+                        
+                        // Ensure the AI bot is always at the top
+                        const finalUsers = sortedUsers.filter(u => u.id !== 'ai-bot');
+                        finalUsers.unshift(aiBotUser);
+
+                        setUsers(finalUsers);
                         setLocationStatus("sorted");
                     },
                     () => {
@@ -89,7 +104,7 @@ export function FindFriends() {
             }
         } catch(error) {
             console.error("Error fetching users:", error);
-            setUsers([]); // Set to empty array on error
+            setUsers([aiBotUser]); // Set to bot user on error
         } finally {
             setLoading(false);
         }
@@ -150,7 +165,7 @@ export function FindFriends() {
                 <div className="flex items-center gap-4">
                   <Avatar className="h-14 w-14 border">
                     <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{user.id === 'ai-bot' ? <Sparkles/> : user.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-semibold text-lg">{user.name}</p>
@@ -161,7 +176,7 @@ export function FindFriends() {
                   </div>
                 </div>
                 <Button asChild>
-                  <Link href={`/chat/${user.id}`}>
+                  <Link href={user.id === 'ai-bot' ? '/assistant' : `/chat/${user.id}`}>
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Chat
                   </Link>

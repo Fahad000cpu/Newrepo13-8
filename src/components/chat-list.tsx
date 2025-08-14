@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "./ui/button";
-import { PlusCircle, MessageSquare, Users } from "lucide-react";
+import { PlusCircle, MessageSquare, Users, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
@@ -23,6 +23,15 @@ type Conversation = {
   isGroup?: boolean;
 }
 
+const aiBotUser: Conversation = {
+    id: "ai-bot",
+    name: "Flow AI Bot",
+    avatarUrl: "https://placehold.co/100x100/D0BFFF/333333.png?text=AI",
+    lastMessage: "Ask me anything about products!",
+    isGroup: false,
+};
+
+
 export function ChatList() {
     const { user: currentUser } = useAuth();
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -34,8 +43,6 @@ export function ChatList() {
              return;
         };
 
-        let combinedConversations: Conversation[] = [];
-
         // 1. Fetch Users (for one-on-one chats)
         const usersCol = collection(db, "users");
         const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
@@ -43,7 +50,6 @@ export function ChatList() {
                 .map(doc => ({ id: doc.id, ...doc.data() } as Conversation))
                 .filter(u => u.id !== currentUser.uid);
             
-            combinedConversations = [...userList, ...combinedConversations.filter(c => c.isGroup)];
             // In a real app, you'd fetch real last message data.
             // For now, we'll add placeholder data.
             const usersWithPlaceholders = userList.map(u => ({
@@ -52,7 +58,7 @@ export function ChatList() {
                 timestamp: ""
             }))
             
-            setConversations(prev => [...usersWithPlaceholders, ...prev.filter(c => c.isGroup)]);
+            setConversations(prev => [aiBotUser, ...usersWithPlaceholders, ...prev.filter(c => c.isGroup)]);
             setLoading(false);
         });
 
@@ -73,7 +79,12 @@ export function ChatList() {
                     } as Conversation
                 });
             
-            setConversations(prev => [...groupList, ...prev.filter(c => !c.isGroup)]);
+             // Using a function with previous state to avoid race conditions
+            setConversations(prev => {
+                const nonGroupConversations = prev.filter(c => !c.isGroup);
+                return [...nonGroupConversations, ...groupList];
+            });
+
             setLoading(false);
         });
 
@@ -119,14 +130,14 @@ export function ChatList() {
           ) : conversations.length > 0 ? (
             conversations.map((convo) => (
               <Link
-                href={convo.isGroup ? `/chat/group/${convo.id}` : `/chat/${convo.id}`}
+                href={convo.id === 'ai-bot' ? '/assistant' : (convo.isGroup ? `/chat/group/${convo.id}` : `/chat/${convo.id}`)}
                 key={convo.id}
                 className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
               >
                 <Avatar className="h-12 w-12 border">
                   <AvatarImage src={convo.avatarUrl} alt={convo.name} />
                   <AvatarFallback>
-                    {convo.isGroup ? <Users/> : convo.name.charAt(0)}
+                    {convo.id === 'ai-bot' ? <Sparkles/> : (convo.isGroup ? <Users/> : convo.name.charAt(0))}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-grow">
