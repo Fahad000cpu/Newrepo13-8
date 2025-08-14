@@ -107,6 +107,18 @@ export function AddStatus() {
         });
         return;
     }
+
+    if (data.type === 'image' || data.type === 'video') {
+        if (!NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+            console.error("Cloudinary environment variables are not set.");
+            toast({
+                variant: "destructive",
+                title: "Configuration Error",
+                description: "Could not upload file: Cloudinary is not configured.",
+            });
+            return;
+        }
+    }
     
     setIsUploading(true);
 
@@ -146,10 +158,10 @@ export function AddStatus() {
             
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
+            formData.append('upload_preset', NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
             
             const resourceType = statusType;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
