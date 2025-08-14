@@ -75,25 +75,31 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
     const groupId = params.id;
     if (!groupId) return;
 
-    const fetchGroupData = async () => {
-      try {
-        const groupRef = doc(db, 'groups', groupId);
-        const groupSnap = await getDoc(groupRef);
-        if (groupSnap.exists()) {
-          const groupData = groupSnap.data() as Omit<Group, 'id'>;
-          setGroup({ ...groupData, id: groupSnap.id });
+    setLoading(true);
+    const groupRef = doc(db, 'groups', groupId);
+    const unsubscribe = onSnapshot(groupRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const groupData = docSnap.data();
+          const groupInfo = {
+             ...groupData,
+             id: docSnap.id,
+          } as Group
+          setGroup(groupInfo);
           form.reset({
-              groupName: groupData.groupName,
-              adminOnlyMessages: groupData.settings?.adminOnlyMessages || false,
+              groupName: groupInfo.groupName,
+              adminOnlyMessages: groupInfo.settings?.adminOnlyMessages || false,
           });
+        } else {
+            console.error("Group not found!");
+            setGroup(null);
         }
-      } catch (error) {
-        console.error("Error fetching group data:", error);
-      } finally {
         setLoading(false);
-      }
-    };
-    fetchGroupData();
+    }, (error) => {
+        console.error("Error fetching group data:", error);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [params.id, form]);
 
   useEffect(() => {
@@ -160,9 +166,6 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
                 adminOnlyMessages: data.adminOnlyMessages,
             }
         });
-
-        // Update local state to reflect changes immediately
-        setGroup(prev => prev ? { ...prev, groupName: data.groupName, groupIconUrl: newIconUrl, settings: { adminOnlyMessages: data.adminOnlyMessages } } : null);
 
         toast({ title: "Settings Saved", description: "Group details have been updated."});
         setIsSettingsOpen(false);
@@ -316,7 +319,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         </Avatar>
         <div className="flex-grow">
           <p className="font-semibold text-lg">{group.groupName}</p>
-          <p className="text-sm text-muted-foreground">{group.members.length} members</p>
+          {group.members && <p className="text-sm text-muted-foreground">{group.members.length} members</p>}
         </div>
         {isAdmin && (
             <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>

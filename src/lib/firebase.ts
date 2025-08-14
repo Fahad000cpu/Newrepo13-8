@@ -14,6 +14,11 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
+// Log the project ID to the browser console to help debug connection issues.
+if (typeof window !== 'undefined') {
+  console.log("Connecting to Firebase project:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+}
+
 // Initialize Firebase
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);

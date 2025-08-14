@@ -25,14 +25,6 @@ type UserData = {
   distance?: number;
 }
 
-const aiBotUser: UserData = {
-    id: "ai-bot",
-    name: "Flow AI Bot",
-    avatarUrl: "https://placehold.co/100x100/D0BFFF/333333.png?text=AI",
-    bio: "I can help you find products and answer questions!",
-};
-
-
 // Haversine distance formula
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
@@ -63,6 +55,10 @@ export function FindFriends() {
 
   useEffect(() => {
     const fetchUsers = async () => {
+        if (!currentUser) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const usersCol = collection(db, "users");
@@ -71,8 +67,6 @@ export function FindFriends() {
                 .map(doc => ({ id: doc.id, ...doc.data() } as UserData))
                 .filter(u => u.id !== currentUser?.uid); // Filter out the current user
 
-            // Add the AI bot to the list
-            userList = [aiBotUser, ...userList];
 
             if ("geolocation" in navigator) {
                 setLocationStatus("loading");
@@ -86,11 +80,7 @@ export function FindFriends() {
                             }))
                             .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
                         
-                        // Ensure the AI bot is always at the top
-                        const finalUsers = sortedUsers.filter(u => u.id !== 'ai-bot');
-                        finalUsers.unshift(aiBotUser);
-
-                        setUsers(finalUsers);
+                        setUsers(sortedUsers);
                         setLocationStatus("sorted");
                     },
                     () => {
@@ -104,14 +94,12 @@ export function FindFriends() {
             }
         } catch(error) {
             console.error("Error fetching users:", error);
-            setUsers([aiBotUser]); // Set to bot user on error
+            setUsers([]);
         } finally {
             setLoading(false);
         }
     }
-    if (currentUser) {
-        fetchUsers();
-    }
+    fetchUsers();
   }, [currentUser]);
 
   const filteredUsers = users.filter((user) =>
@@ -165,7 +153,7 @@ export function FindFriends() {
                 <div className="flex items-center gap-4">
                   <Avatar className="h-14 w-14 border">
                     <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback>{user.id === 'ai-bot' ? <Sparkles/> : user.name?.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-semibold text-lg">{user.name}</p>
@@ -176,7 +164,7 @@ export function FindFriends() {
                   </div>
                 </div>
                 <Button asChild>
-                  <Link href={user.id === 'ai-bot' ? '/assistant' : `/chat/${user.id}`}>
+                  <Link href={`/chat/${user.id}`}>
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Chat
                   </Link>
@@ -186,7 +174,7 @@ export function FindFriends() {
           ) : (
             <div className="text-center py-12 text-muted-foreground col-span-full">
                  <User className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold">No Users Found</h3>
+                <h3 className="text-lg font-semibold">No Other Users Found</h3>
                 <p className="mt-1">Be the first to sign up and invite your friends!</p>
             </div>
           )}

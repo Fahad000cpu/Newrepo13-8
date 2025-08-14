@@ -9,7 +9,7 @@ import { PlusCircle, MessageSquare, Users, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -23,15 +23,6 @@ type Conversation = {
   isGroup?: boolean;
 }
 
-const aiBotUser: Conversation = {
-    id: "ai-bot",
-    name: "Flow AI Bot",
-    avatarUrl: "https://placehold.co/100x100/D0BFFF/333333.png?text=AI",
-    lastMessage: "Ask me anything about products!",
-    isGroup: false,
-};
-
-
 export function ChatList() {
     const { user: currentUser } = useAuth();
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -43,56 +34,51 @@ export function ChatList() {
              return;
         };
 
-        // 1. Fetch Users (for one-on-one chats)
-        const usersCol = collection(db, "users");
-        const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
-            const userList = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() } as Conversation))
-                .filter(u => u.id !== currentUser.uid);
-            
-            // In a real app, you'd fetch real last message data.
-            // For now, we'll add placeholder data.
-            const usersWithPlaceholders = userList.map(u => ({
-                ...u,
-                lastMessage: "Click to start a conversation",
-                timestamp: ""
-            }))
-            
-            setConversations(prev => [aiBotUser, ...usersWithPlaceholders, ...prev.filter(c => c.isGroup)]);
-            setLoading(false);
-        });
+        setLoading(true);
 
-        // 2. Fetch Groups
-        const groupsCol = collection(db, "groups");
-        const groupsQuery = query(groupsCol, where("members", "array-contains", currentUser.uid));
-        const unsubscribeGroups = onSnapshot(groupsQuery, (snapshot) => {
-            const groupList = snapshot.docs
-                .map(doc => {
-                    const data = doc.data();
-                    return { 
+        const fetchFriendsAndGroups = async () => {
+            const fetchedConversations: Conversation[] = [];
+
+            // 1. Fetch Users (for one-on-one chats)
+            const usersCol = collection(db, "users");
+            const usersSnapshot = await getDocs(usersCol);
+            usersSnapshot.docs.forEach(doc => {
+                if (doc.id !== currentUser.uid) {
+                    const userData = doc.data();
+                    fetchedConversations.push({
                         id: doc.id,
-                        name: data.groupName,
-                        avatarUrl: data.groupIconUrl,
-                        lastMessage: "Group conversation",
-                        timestamp: "",
-                        isGroup: true,
-                    } as Conversation
-                });
-            
-             // Using a function with previous state to avoid race conditions
-            setConversations(prev => {
-                const nonGroupConversations = prev.filter(c => !c.isGroup);
-                return [...nonGroupConversations, ...groupList];
+                        name: userData.name || "Unknown User",
+                        avatarUrl: userData.avatarUrl || `https://placehold.co/100x100.png`,
+                        lastMessage: "Click to start a conversation",
+                        isGroup: false,
+                    });
+                }
             });
 
+            // 2. Fetch Groups
+            const groupsCol = collection(db, "groups");
+            const groupsQuery = query(groupsCol, where("members", "array-contains", currentUser.uid));
+            const groupsSnapshot = await getDocs(groupsQuery);
+            groupsSnapshot.docs.forEach(doc => {
+                const groupData = doc.data();
+                fetchedConversations.push({
+                    id: doc.id,
+                    name: groupData.groupName,
+                    avatarUrl: groupData.groupIconUrl,
+                    lastMessage: "Group conversation",
+                    isGroup: true,
+                });
+            });
+            
+            setConversations(fetchedConversations);
+            setLoading(false);
+        }
+
+        fetchFriendsAndGroups().catch(err => {
+            console.error("Error fetching conversations: ", err);
             setLoading(false);
         });
 
-
-        return () => {
-            unsubscribeUsers();
-            unsubscribeGroups();
-        };
     }, [currentUser]);
 
 
@@ -130,14 +116,14 @@ export function ChatList() {
           ) : conversations.length > 0 ? (
             conversations.map((convo) => (
               <Link
-                href={convo.id === 'ai-bot' ? '/assistant' : (convo.isGroup ? `/chat/group/${convo.id}` : `/chat/${convo.id}`)}
+                href={convo.isGroup ? `/chat/group/${convo.id}` : `/chat/${convo.id}`}
                 key={convo.id}
                 className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
               >
                 <Avatar className="h-12 w-12 border">
                   <AvatarImage src={convo.avatarUrl} alt={convo.name} />
                   <AvatarFallback>
-                    {convo.id === 'ai-bot' ? <Sparkles/> : (convo.isGroup ? <Users/> : convo.name.charAt(0))}
+                    {convo.isGroup ? <Users/> : convo.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-grow">
