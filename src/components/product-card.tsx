@@ -62,9 +62,9 @@ export function ProductCard({ product }: { product: Product }) {
     }
   }
 
-  const formattedPrice = new Intl.NumberFormat("en-US", {
+  const formattedPrice = new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
+    currency: "INR",
   }).format(product.price);
 
   return (

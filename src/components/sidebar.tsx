@@ -3,33 +3,33 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, UserCircle, MessageSquare, Shield, Camera, Link2, FileText, Share2, Copy, Star, Users, Sparkles } from "lucide-react";
+import { Home, UserCircle, MessageSquare, Shield, Camera, Link2, FileText, Share2, Copy, Star, Users, Sparkles, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
 
-const navLinks = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/status", label: "Status", icon: Camera },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/chat/create-group", label: "Create Group", icon: Users },
-  { href: "/profile", label: "Profile", icon: UserCircle },
-  { href: "/assistant", label: "AI Assistant", icon: Sparkles },
-  { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
-  { href: "/terms", label: "Terms", icon: FileText },
-  { href: "/privacy", label: "Privacy", icon: FileText },
-  { href: "https://browserleaks.com/ip", label: "Check IP", icon: Link2, external: true },
-  { href: "https://amropedia.wordpress.com", label: "Ad Website", icon: Star, external: true },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   
   const adminEmail = 'fahadkhanamrohivi@gmail.com';
   const isAdmin = user?.email === adminEmail;
+
+  const navLinks = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/status", label: "Status", icon: Camera },
+    { href: "/chat", label: "Chat", icon: MessageSquare, auth: true },
+    { href: "/chat/create-group", label: "Create Group", icon: Users, auth: true },
+    { href: "/profile", label: "Profile", icon: UserCircle, auth: true },
+    { href: "/assistant", label: "AI Assistant", icon: Sparkles, auth: true },
+    { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
+    { href: "/terms", label: "Terms", icon: FileText },
+    { href: "/privacy", label: "Privacy", icon: FileText },
+    { href: "https://browserleaks.com/ip", label: "Check IP", icon: Link2, external: true },
+    { href: "https://amropedia.wordpress.com", label: "Ad Website", icon: Star, external: true },
+  ];
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.origin);
@@ -76,8 +76,9 @@ export function Sidebar() {
       </div>
       <nav className="flex-grow p-4">
         <ul className="space-y-2">
-          {navLinks.map(({ href, label, icon: Icon, external, adminOnly }) => {
+          {navLinks.map(({ href, label, icon: Icon, external, adminOnly, auth: authRequired }) => {
             if (adminOnly && !isAdmin) return null;
+            if (authRequired && !user) return null;
 
             const isActive = !external && (href === "/" ? pathname === href : pathname.startsWith(href));
             const linkContent = (
@@ -118,6 +119,21 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+      <div className="mt-auto p-4 border-t">
+         {user ? (
+            <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
+          ) : (
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/auth/signin">
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign In
+              </Link>
+            </Button>
+          )}
+      </div>
     </div>
   );
 }

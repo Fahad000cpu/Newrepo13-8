@@ -69,7 +69,7 @@ export default function Home() {
   const { toast } = useToast();
   
   const adminEmail = 'fahadkhanamrohivi@gmail.com';
-  const isAdmin = user?.email === adminEmail;
+  const isAdmin = user && user.email === adminEmail;
 
   const productForm = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -269,9 +269,9 @@ export default function Home() {
                 name="price"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Price (USD)</FormLabel>
+                    <FormLabel>Price (INR)</FormLabel>
                     <FormControl>
-                    <Input type="number" placeholder="e.g. 45.00" {...field} />
+                    <Input type="number" placeholder="e.g. 2500" {...field} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
