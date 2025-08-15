@@ -8,6 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { generate } from 'genkit';
 import { z } from 'zod';
 
 export const ChatMessageSchema = z.object({
@@ -27,37 +28,31 @@ LinkShare is a social platform where users can discover, share, and purchase uni
 Your role is to assist users with their questions about the app, suggest products, and help them navigate its features.
 Keep your responses concise, friendly, and helpful.`;
 
-const chatPrompt = ai.definePrompt(
-  {
-    name: 'chatPrompt',
-    inputSchema: ChatInputSchema,
-    system: SystemPrompt,
-    prompt: `
-    {{#each history}}
-      {{#if (eq role "user")}}
-        User: {{content}}
-      {{else}}
-        Assistant: {{content}}
-      {{/if}}
-    {{/each}}
-    User: {{message}}
-    Assistant:
-  `,
-    config: {
-      model: 'googleai/gemini-1.5-flash',
-      temperature: 0.7,
-    },
-  },
-);
-
-export const chatFlow = ai.defineFlow(
+const chatFlow = ai.defineFlow(
   {
     name: 'chatFlow',
     inputSchema: ChatInputSchema,
     outputSchema: z.string(),
   },
   async (input) => {
-    const { output } = await chatPrompt(input);
-    return output!;
+    // Convert the input history to the format Genkit expects for history
+    const history = input.history.map((msg) => ({
+      role: msg.role,
+      content: [{ text: msg.content }],
+    }));
+
+    const response = await generate({
+      model: 'googleai/gemini-1.5-flash',
+      prompt: input.message,
+      system: SystemPrompt,
+      history: history,
+      config: {
+        temperature: 0.7,
+      },
+    });
+
+    return response.text;
   }
 );
+
+export { chatFlow };
