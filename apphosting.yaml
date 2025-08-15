@@ -8,4 +8,3 @@ runConfig:
 requiredSecrets:
   - secret: FIREBASE_SERVICE_ACCOUNT_KEY
     resource: service-account-key.json
-  - secret: GEMINI_API_KEY

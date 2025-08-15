@@ -23,7 +23,6 @@ export function Sidebar() {
     { href: "/chat", label: "Chat", icon: MessageSquare, auth: true },
     { href: "/chat/create-group", label: "Create Group", icon: Users, auth: true },
     { href: "/profile", label: "Profile", icon: UserCircle, auth: true },
-    { href: "/assistant", label: "AI Assistant", icon: Sparkles, auth: true },
     { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
     { href: "/terms", label: "Terms", icon: FileText },
     { href: "/privacy", label: "Privacy", icon: FileText },
