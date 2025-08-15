@@ -1,65 +1,67 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Anyone can read products, but only authenticated users can create/update/delete.
-    // In a real app, you'd restrict writes to admins.
+    // Helper function to check if the user is the admin
+    function isAdmin() {
+      return request.auth.token.email == 'fahadkhanamrohivi@gmail.com';
+    }
+
+    // Products can be read by anyone, but only modified by an admin
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
-
-    // Users can read anyone's profile.
-    // A user can only create or update their own profile.
+    
+    // Users can be read by anyone, but a user can only write to their own document.
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Users can read anyone's notifications, but can only create their own.
-    // This could be restricted further if needed.
-    match /users/{userId}/notifications/{notificationId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      
+      // Notifications can only be read and written by the owner user.
+      match /notifications/{notificationId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Statuses can be read by any authenticated user.
     // A user can only create a status for themselves.
-    // A user can delete their own status.
+    // Likes and other subcollections follow similar rules.
     match /statuses/{statusId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update(update): if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      match /likes/{userId} {
         allow read: if request.auth != null;
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
-        // Allow updates only for likes
-        allow update: if request.auth != null;
-
-        // Likes on statuses
-        match /likes/{userId} {
-            allow read: if request.auth != null;
-            // A user can only create a like for themselves
-            allow create: if request.auth != null && userId == request.auth.uid;
-            // No one can update a like, and a user can only delete their own like
-            allow update: if false;
-            allow delete: if request.auth != null && userId == request.auth.uid;
-        }
-    }
-
-    // One-on-one chats
-    match /chats/{chatId}/messages/{messageId} {
-      // Allow read and write only if the user is part of the chat.
-      // The chatId is assumed to be a combination of the two user UIDs.
-      allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
-    // Group chats
+    // Groups can only be read by members of the group.
+    // Only the creator can update group info.
+    // Only members can write messages.
     match /groups/{groupId} {
-        // Allow read and update only if user is a member of the group
-        allow read, update: if request.auth != null && resource.data.members.hasAny([request.auth.uid]);
-        allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
-    }
-    match /groups/{groupId}/messages/{messageId} {
-        // Allow read and write only if the user is a member of the group
+      allow read: if request.auth != null && resource.data.members.hasAny([request.auth.uid]);
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null && resource.data.createdBy == request.auth.uid;
+      
+      match /messages/{messageId} {
         allow read, write: if request.auth != null && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+      }
     }
+    
+    // One-on-one chats
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
 
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
+        allow create: if request.auth != null && request.resource.data.senderId == request.auth.uid;
+      }
+    }
   }
 }
