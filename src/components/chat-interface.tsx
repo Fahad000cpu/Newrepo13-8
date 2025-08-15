@@ -97,7 +97,7 @@ export function ChatInterface({ friend }: { friend: Friend }) {
         };
 
         if (attachment) {
-            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET) {
+            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY) {
               throw new Error("Cloudinary environment variables are not properly configured.");
             }
 

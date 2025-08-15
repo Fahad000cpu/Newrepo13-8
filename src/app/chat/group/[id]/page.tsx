@@ -141,7 +141,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         const iconFile = data.groupIcon?.[0];
 
         if (iconFile) {
-            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET) {
+            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY) {
               throw new Error("Cloudinary environment variables are not properly configured.");
             }
 
@@ -254,7 +254,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         };
         
         if (attachment) {
-            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET) {
+            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY) {
               throw new Error("Cloudinary environment variables are not properly configured.");
             }
 
