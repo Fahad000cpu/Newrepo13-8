@@ -50,12 +50,14 @@ export function AiAssistant() {
 
 
   const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
+    setTimeout(() => {
+       if (scrollAreaRef.current) {
         const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
         if (viewport) {
             viewport.scrollTop = viewport.scrollHeight;
         }
-    }
+      }
+    }, 0);
   };
 
   useEffect(() => {
@@ -76,13 +78,16 @@ export function AiAssistant() {
   async function onSubmit(data: FormValues) {
     const userMessage: ChatMessage = { role: "user", content: data.message };
     const newMessages = [...messages, userMessage];
+    
+    // Immediately update the UI with the user's message
     setMessages(newMessages);
     form.reset();
     setIsLoading(true);
 
     try {
+      // Pass the updated message list to the AI flow
       const aiResponse = await chatFlow({
-        history: messages,
+        history: messages, // Send the history *before* the new message
         message: data.message,
       });
       const aiMessage: ChatMessage = { role: "model", content: aiResponse };
@@ -101,7 +106,7 @@ export function AiAssistant() {
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto py-4">
-      <header className="text-center mb-6 relative">
+      <header className="text-center mb-6 relative px-4">
         <h1 className="font-headline text-3xl font-bold tracking-tight flex items-center justify-center gap-2">
             <Sparkles className="text-primary"/>
             AI Assistant
@@ -111,7 +116,7 @@ export function AiAssistant() {
             <Button 
                 variant="ghost" 
                 size="icon" 
-                className="absolute top-1/2 -translate-y-1/2 right-0"
+                className="absolute top-1/2 -translate-y-1/2 right-4"
                 onClick={handleClearChat}
                 aria-label="Clear chat history"
             >
@@ -120,7 +125,7 @@ export function AiAssistant() {
         )}
       </header>
       
-      <ScrollArea className="flex-1 mb-4 pr-4" ref={scrollAreaRef}>
+      <ScrollArea className="flex-1 mb-4 px-4" ref={scrollAreaRef}>
         <div className="space-y-6">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground p-8">
@@ -158,7 +163,7 @@ export function AiAssistant() {
         </div>
       </ScrollArea>
       
-      <div className="mt-auto">
+      <div className="mt-auto px-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2">
             <FormField
