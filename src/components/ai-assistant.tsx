@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Send, Loader2, Sparkles, User, Trash2 } from "lucide-react";
 import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { chatWithGoogle, type ChatMessage } from "@/app/actions/chat";
+import { chatFlow, type ChatMessage } from "@/ai/flows/chat-flow";
 import { useAuth } from "@/context/auth-context";
 
 const formSchema = z.object({
@@ -81,7 +81,7 @@ export function AiAssistant() {
     setIsLoading(true);
 
     try {
-      const aiResponse = await chatWithGoogle({
+      const aiResponse = await chatFlow({
         history: messages,
         message: data.message,
       });
