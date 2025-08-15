@@ -17,7 +17,7 @@ const firebaseConfig = {
 if (typeof window !== 'undefined') {
   console.log("Attempting to connect to Firebase project:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
   if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-    console.error("FIREBASE CONNECTION FAILED: NEXT_PUBLIC_FIREBASE_PROJECT_ID is not defined or accessible in this environment. Please verify your Vercel environment variables.");
+    console.error("FIREBASE CONNECTION FAILED: NEXT_PUBLIC_FIREBASE_PROJECT_ID is not defined. Please verify your environment variables (.env file for local development or Vercel dashboard for deployment).");
   }
 }
 
