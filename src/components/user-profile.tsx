@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
+import { Switch } from "./ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ const profileFormSchema = z.object({
   bio: z.string().max(160, { message: "Bio cannot be more than 160 characters." }).optional(),
   email: z.string().email({ message: "Please enter a valid email address." }),
   avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
+  isPrivate: z.boolean().default(false),
   twitter: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   instagram: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   github: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
@@ -122,6 +124,9 @@ export function UserProfile({ userId }: { userId: string }) {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+        isPrivate: false,
+    }
   });
 
   const isMyProfile = user?.uid === userId;
@@ -400,6 +405,12 @@ export function UserProfile({ userId }: { userId: string }) {
                 <h2 className="text-xl font-semibold">User Blocked</h2>
                 <p className="mt-2">You have blocked this user. Unblock them to see their content.</p>
             </div>
+        ) : userInfo.isPrivate && !isMyProfile ? (
+            <div className="text-center py-12 text-muted-foreground border bg-muted rounded-lg">
+                <Shield className="h-12 w-12 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold">This Account is Private</h2>
+                <p className="mt-2">Follow this account to see their content.</p>
+            </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1 space-y-6">
@@ -519,6 +530,28 @@ export function UserProfile({ userId }: { userId: string }) {
                       </div>
                   </div>
               </FormItem>
+              
+               <FormField
+                control={form.control}
+                name="isPrivate"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                            <FormLabel>Private Account</FormLabel>
+                            <p className="text-xs text-muted-foreground">
+                                If enabled, your content will only be visible to your followers.
+                            </p>
+                        </div>
+                        <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
+              />
+
 
                <h3 className="text-sm font-medium pt-2">Social Links</h3>
                 <FormField

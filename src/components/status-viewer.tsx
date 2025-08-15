@@ -1,4 +1,3 @@
-
 // src/components/status-viewer.tsx
 "use client";
 
@@ -37,7 +36,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   const likeAnimationTimeoutRef = useRef<NodeJS.Timeout>();
   const lastTap = useRef(0);
 
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, userData: currentUserData } = useAuth();
   const { toast } = useToast();
 
   const currentStory = user.stories[currentStoryIndex];
@@ -116,7 +115,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   }, [goToNextStory, goToPreviousStory, onClose]);
   
   const triggerLike = async () => {
-    if (!currentUser) {
+    if (!currentUser || !currentUserData) {
       toast({
         variant: "destructive",
         title: "Please log in",
@@ -142,6 +141,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
       const likeRef = doc(db, "statuses", currentStory.id, "likes", currentUser.uid);
       const statusOwnerRef = doc(db, "users", user.userId);
 
+      // Perform the like updates in a transaction
       await runTransaction(db, async (transaction) => {
         const likeDoc = await transaction.get(likeRef);
         if(likeDoc.exists()) return; // Already liked, do nothing
@@ -159,22 +159,19 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
         transaction.update(statusOwnerRef, { totalLikes: currentTotalLikes + 1 });
         
         transaction.set(likeRef, { likedAt: serverTimestamp() });
-        
-        const currentUserData = (await getDoc(doc(db, "users", currentUser.uid))).data();
+      });
 
-        if (currentUserData) {
-            const notificationsRef = collection(db, "users", user.userId, "notifications");
-            addDoc(notificationsRef, { // Don't await this inside transaction
-                fromUserId: currentUser.uid,
-                fromUserName: currentUserData.name || "A user",
-                fromUserAvatar: currentUserData.avatarUrl || "",
-                type: "like",
-                message: "liked your status.",
-                entityId: currentStory.id,
-                timestamp: serverTimestamp(),
-                isRead: false
-            });
-        }
+      // Send notification after the transaction is successful
+      const notificationsRef = collection(db, "users", user.userId, "notifications");
+      await addDoc(notificationsRef, {
+          fromUserId: currentUser.uid,
+          fromUserName: currentUserData.name || "A user",
+          fromUserAvatar: currentUserData.avatarUrl || "",
+          type: "like",
+          message: "liked your status.",
+          entityId: currentStory.id,
+          timestamp: serverTimestamp(),
+          isRead: false
       });
 
     } catch (error) {

@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Search, LocateFixed, User, Loader2, Sparkles } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
 import { Skeleton } from "./ui/skeleton";
 
@@ -62,7 +62,9 @@ export function FindFriends() {
         setLoading(true);
         try {
             const usersCol = collection(db, "users");
-            const userSnapshot = await getDocs(usersCol);
+            const q = query(usersCol, where("isPrivate", "==", false));
+            const userSnapshot = await getDocs(q);
+            
             let userList = userSnapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as UserData))
                 .filter(u => u.id !== currentUser?.uid); // Filter out the current user
@@ -174,8 +176,8 @@ export function FindFriends() {
           ) : (
             <div className="text-center py-12 text-muted-foreground col-span-full">
                  <User className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold">No Other Users Found</h3>
-                <p className="mt-1">Be the first to sign up and invite your friends!</p>
+                <h3 className="text-lg font-semibold">No Public Users Found</h3>
+                <p className="mt-1">Looks like there are no public users to connect with right now.</p>
             </div>
           )}
         </div>

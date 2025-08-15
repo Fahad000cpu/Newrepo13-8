@@ -1,4 +1,3 @@
-
 // src/context/auth-context.tsx
 "use client";
 
@@ -20,6 +19,7 @@ interface UserData extends DocumentData {
     email?: string;
     avatarUrl?: string;
     bio?: string;
+    isPrivate?: boolean;
     blockedUsers?: string[];
     blockedBy?: string[];
     permissionsRequested?: boolean;
@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: email,
         avatarUrl: `https://placehold.co/100x100.png`,
         bio: `Welcome to my Flow v3 profile!`,
+        isPrivate: false, // Default to public profile
         twitter: "",
         instagram: "",
         github: "",

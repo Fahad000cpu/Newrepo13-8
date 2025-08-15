@@ -36,11 +36,25 @@ export function StatusList() {
       setLoading(true);
       try {
         const twentyFourHoursAgo = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+        
+        // First, get all public users
+        const usersRef = collection(db, "users");
+        const publicUsersQuery = query(usersRef, where("isPrivate", "==", false));
+        const publicUsersSnapshot = await getDocs(publicUsersQuery);
+        const publicUserIds = publicUsersSnapshot.docs.map(doc => doc.id);
+
+        if (publicUserIds.length === 0) {
+            setStoriesByUser([]);
+            setLoading(false);
+            return;
+        }
+
         const statusesRef = collection(db, "statuses");
         const q = query(
           statusesRef,
           where("createdAt", ">=", twentyFourHoursAgo),
-          orderBy("createdAt", "asc") // Fetch oldest first to display in correct order
+          where("userId", "in", publicUserIds), // Only fetch statuses from public users
+          orderBy("createdAt", "asc")
         );
 
         const querySnapshot = await getDocs(q);
@@ -52,25 +66,31 @@ export function StatusList() {
           const createdAt = data.createdAt as Timestamp;
 
           if (!groupedStories[userId]) {
-            groupedStories[userId] = {
-              userId: userId,
-              username: data.username,
-              avatarUrl: data.avatarUrl,
-              stories: [],
-            };
+            // Find the user data from our initial public user fetch
+            const userDoc = publicUsersSnapshot.docs.find(d => d.id === userId);
+            if (userDoc) {
+                const userData = userDoc.data();
+                groupedStories[userId] = {
+                    userId: userId,
+                    username: userData.name,
+                    avatarUrl: userData.avatarUrl,
+                    stories: [],
+                };
+            }
           }
-
-          groupedStories[userId].stories.push({
-            id: doc.id,
-            type: data.type,
-            url: data.mediaUrl,
-            duration: data.duration,
-            timestamp: createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'}),
-            createdAt: createdAt,
-          });
+          
+          if(groupedStories[userId]) {
+            groupedStories[userId].stories.push({
+                id: doc.id,
+                type: data.type,
+                url: data.mediaUrl,
+                duration: data.duration,
+                timestamp: createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'}),
+                createdAt: createdAt,
+            });
+          }
         });
         
-        // Convert the record to an array and sort users by the timestamp of their latest story
         const usersArray = Object.values(groupedStories).sort((a, b) => {
             const lastStoryA = a.stories[a.stories.length - 1].createdAt.toMillis();
             const lastStoryB = b.stories[b.stories.length - 1].createdAt.toMillis();
@@ -144,7 +164,7 @@ export function StatusList() {
         )}
       </div>
       {!loading && storiesByUser.length === 0 && (
-        <p className="text-center text-muted-foreground py-10">No statuses from the last 24 hours. Be the first to post!</p>
+        <p className="text-center text-muted-foreground py-10">No public statuses from the last 24 hours. Be the first to post!</p>
       )}
       {currentUser && <StatusViewer user={currentUser} onClose={handleCloseViewer} onNextUser={handleNextUser} />}
     </>
