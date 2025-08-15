@@ -77,31 +77,38 @@ export function AiAssistant() {
 
   async function onSubmit(data: FormValues) {
     const userMessage: ChatMessage = { role: "user", content: data.message };
-    const newMessages = [...messages, userMessage];
     
     // Immediately update the UI with the user's message
-    setMessages(newMessages);
-    form.reset();
-    setIsLoading(true);
+    // Pass the state updater function to ensure we have the latest state
+    setMessages(prevMessages => {
+        const newMessages = [...prevMessages, userMessage];
 
-    try {
-      // Pass the updated message list to the AI flow
-      const aiResponse = await chatFlow({
-        history: messages, // Send the history *before* the new message
-        message: data.message,
-      });
-      const aiMessage: ChatMessage = { role: "model", content: aiResponse };
-      setMessages(prevMessages => [...prevMessages, aiMessage]);
-    } catch (error) {
-      console.error("AI chat error:", error);
-      const errorMessage: ChatMessage = {
-        role: "model",
-        content: "Sorry, I'm having trouble connecting. Please try again later.",
-      };
-      setMessages(prevMessages => [...prevMessages, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+        // Call the AI flow with the most up-to-date message list
+        (async () => {
+          setIsLoading(true);
+          try {
+            const aiResponse = await chatFlow({
+              history: prevMessages, // Send the history *before* the new user message
+              message: data.message,
+            });
+            const aiMessage: ChatMessage = { role: "model", content: aiResponse };
+            setMessages(currentMessages => [...currentMessages, aiMessage]);
+          } catch (error) {
+            console.error("AI chat error:", error);
+            const errorMessage: ChatMessage = {
+              role: "model",
+              content: "Sorry, I'm having trouble connecting. Please try again later.",
+            };
+            setMessages(currentMessages => [...currentMessages, errorMessage]);
+          } finally {
+            setIsLoading(false);
+          }
+        })();
+
+        return newMessages;
+    });
+
+    form.reset();
   }
 
   return (
