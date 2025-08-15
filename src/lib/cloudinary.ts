@@ -5,4 +5,4 @@
 // Ensure these match your Cloudinary account settings exactly.
 
 export const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-export const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
+export const CLOUDINARY_UPLOAD_PRESET = "Flow_v3";
