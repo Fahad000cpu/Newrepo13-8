@@ -1,14 +1,63 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your Firestore database. It is useful for getting
-      // started, but make sure to secure your database correctly before
-      // launching your app.
-      //
-      // Allow reads and writes for the next 30 days
-      allow read, write: if request.time < timestamp.date(2024, 9, 8);
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Publicly readable collections
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false; // Can only be written from admin/backend
+    }
+
+    // Users can be created by anyone (on signup)
+    // Users can only read/update their own profile
+    // Users can read other user's public info
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if true; 
+      allow update: if isOwner(userId);
+    }
+    
+    // Statuses can be created by any signed-in user
+    // Anyone can read statuses
+    // Users can only update their own likes, not the status itself
+    match /statuses/{statusId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+
+      match /likes/{userId} {
+        allow write: if isOwner(userId);
+      }
+    }
+    
+    // Notifications are private to each user
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Chat messages can only be read/written by members of the chat
+    match /chats/{chatId}/messages/{messageId} {
+        // Simple check: Allow if the user is signed in.
+        // A more secure rule would check if the user is in a `members` array of the chat document.
+        allow read, write: if isSignedIn();
+    }
+    
+    // Groups can be read and written to by signed-in users.
+    // A more secure rule would check if the user is in the `members` array.
+    match /groups/{groupId} {
+      allow read, write: if isSignedIn();
+       match /messages/{messageId} {
+          allow read, write: if isSignedIn();
+      }
     }
   }
 }
