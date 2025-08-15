@@ -31,7 +31,6 @@ const chatPrompt = ai.definePrompt(
   {
     name: 'chatPrompt',
     inputSchema: ChatInputSchema,
-    outputSchema: z.string(),
     system: SystemPrompt,
     prompt: `
     {{#each history}}

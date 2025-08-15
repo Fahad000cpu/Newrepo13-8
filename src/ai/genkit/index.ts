@@ -36,6 +36,4 @@ export const ai = genkit({
     }),
     corsPlugin,
   ],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
 });
