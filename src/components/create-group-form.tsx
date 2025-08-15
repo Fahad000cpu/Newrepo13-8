@@ -19,6 +19,7 @@ import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore
 import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 import Image from 'next/image';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const createGroupFormSchema = z.object({
     groupName: z.string().min(3, { message: "Group name must be at least 3 characters." }),
@@ -96,17 +97,13 @@ export function CreateGroupForm() {
         try {
             let groupIconUrl = `https://placehold.co/100x100.png?text=${data.groupName.charAt(0)}`;
             
-            // Upload group icon if provided
             const iconFile = data.groupIcon?.[0];
             if (iconFile) {
-                 if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
-                    throw new Error("Cloudinary environment variables are not properly configured.");
-                }
                 const formData = new FormData();
                 formData.append('file', iconFile);
-                formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
                 
-                const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -116,10 +113,8 @@ export function CreateGroupForm() {
                 groupIconUrl = cloudinaryData.secure_url;
             }
 
-            // Add the current user to the members list
             const members = [...data.members, currentUser.uid];
 
-            // Create group document in Firestore
             const groupRef = await addDoc(collection(db, "groups"), {
                 groupName: data.groupName,
                 groupIconUrl,

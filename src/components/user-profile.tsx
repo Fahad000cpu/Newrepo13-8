@@ -1,4 +1,3 @@
-
 // src/components/user-profile.tsx
 
 "use client";
@@ -42,6 +41,7 @@ import { useAuth } from "@/context/auth-context";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { Badge } from "./ui/badge";
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -210,6 +210,14 @@ export function UserProfile({ userId }: { userId: string }) {
 
   const handleCropSave = async () => {
     if (!completedCrop || !imgRef.current) return;
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+        toast({
+            variant: "destructive",
+            title: "Configuration Error",
+            description: "File upload is not configured correctly. Please contact support.",
+        });
+        return;
+    }
     setIsUploading(true);
 
     try {
@@ -218,15 +226,11 @@ export function UserProfile({ userId }: { userId: string }) {
 
         const croppedFile = new File([croppedBlob], "avatar.png", { type: "image/png"});
         
-        if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
-          throw new Error("Cloudinary environment variables are not properly configured.");
-        }
-
         const formData = new FormData();
         formData.append('file', croppedFile);
-        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
         
-        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
             method: 'POST',
             body: formData,
         });

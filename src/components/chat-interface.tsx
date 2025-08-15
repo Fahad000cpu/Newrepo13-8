@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { useAuth } from '@/context/auth-context';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 type Friend = {
   id: string;
@@ -86,6 +87,14 @@ export function ChatInterface({ friend }: { friend: Friend }) {
         toast({ variant: "destructive", title: "User is blocked.", description: "You must unblock this user to send a message." });
         return;
     }
+     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+        toast({
+            variant: "destructive",
+            title: "Configuration Error",
+            description: "File upload is not configured correctly. Please contact support.",
+        });
+        return;
+    }
 
     setIsSending(true);
 
@@ -97,16 +106,12 @@ export function ChatInterface({ friend }: { friend: Friend }) {
         };
 
         if (attachment) {
-            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
-              throw new Error("Cloudinary environment variables are not properly configured.");
-            }
-
             const formData = new FormData();
             formData.append('file', attachment.file);
-            formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
             
             const resourceType = attachment.type;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });

@@ -18,6 +18,7 @@ import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/fires
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YoutubePlayer } from './youtube-player';
 import { useAuth } from '@/context/auth-context';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
@@ -103,6 +104,15 @@ export function AddStatus() {
         });
         return;
     }
+
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+        toast({
+            variant: "destructive",
+            title: "Configuration Error",
+            description: "Cloudinary is not configured correctly. Please contact support.",
+        });
+        return;
+    }
     
     setIsUploading(true);
 
@@ -138,16 +148,12 @@ export function AddStatus() {
                  return;
             }
             
-            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
-              throw new Error("Cloudinary environment variables are not properly configured.");
-            }
-
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
             
             const resourceType = data.type;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
