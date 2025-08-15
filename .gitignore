@@ -1,41 +1,39 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Dependencies
+# dependencies
 /node_modules
 /.pnp
 .pnp.js
-.pnp.cjs
 
-# Testing
+# testing
 /coverage
 
-# Next.js build output
+# next.js
 /.next/
 /out/
 
-# Production
+# production
 /build
 
-# Logs
+# misc
+.DS_Store
+*.pem
+
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-# Local development
-.env
+# local env files
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# IDE files
-.vscode/
-.idea/
+# vercel
+.vercel
 
-# Mac files
-.DS_Store
-
-# Workbox
-.workbox-Workbox
+# dataconnect
+dataconnect/.dataconnect
+dataconnect/codegen.out.json
+dataconnect-generated
