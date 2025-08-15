@@ -1,63 +1,65 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Publicly readable collections
+  
+    // Anyone can read products, but only authenticated users can create/update/delete.
+    // In a real app, you'd restrict writes to admins.
     match /products/{productId} {
       allow read: if true;
-      allow write: if false; // Can only be written from admin/backend
+      allow write: if request.auth != null;
     }
 
-    // Users can be created by anyone (on signup)
-    // Users can only read/update their own profile
-    // Users can read other user's public info
+    // Users can read anyone's profile.
+    // A user can only create or update their own profile.
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if true; 
-      allow update: if isOwner(userId);
-    }
-    
-    // Statuses can be created by any signed-in user
-    // Anyone can read statuses
-    // Users can only update their own likes, not the status itself
-    match /statuses/{statusId} {
       allow read: if true;
-      allow create: if isSignedIn();
-
-      match /likes/{userId} {
-        allow write: if isOwner(userId);
-      }
+      allow create, update: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Notifications are private to each user
+
+    // Users can read anyone's notifications, but can only create their own.
+    // This could be restricted further if needed.
     match /users/{userId}/notifications/{notificationId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Chat messages can only be read/written by members of the chat
-    match /chats/{chatId}/messages/{messageId} {
-        // Simple check: Allow if the user is signed in.
-        // A more secure rule would check if the user is in a `members` array of the chat document.
-        allow read, write: if isSignedIn();
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Groups can be read and written to by signed-in users.
-    // A more secure rule would check if the user is in the `members` array.
-    match /groups/{groupId} {
-      allow read, write: if isSignedIn();
-       match /messages/{messageId} {
-          allow read, write: if isSignedIn();
-      }
+    // Statuses can be read by any authenticated user.
+    // A user can only create a status for themselves.
+    // A user can delete their own status.
+    match /statuses/{statusId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+        // Allow updates only for likes
+        allow update: if request.auth != null;
+
+        // Likes on statuses
+        match /likes/{userId} {
+            allow read: if request.auth != null;
+            // A user can only create a like for themselves
+            allow create: if request.auth != null && userId == request.auth.uid;
+            // No one can update a like, and a user can only delete their own like
+            allow update: if false;
+            allow delete: if request.auth != null && userId == request.auth.uid;
+        }
     }
+
+    // One-on-one chats
+    match /chats/{chatId}/messages/{messageId} {
+      // Allow read and write only if the user is part of the chat.
+      // The chatId is assumed to be a combination of the two user UIDs.
+      allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
+    }
+    
+    // Group chats
+    match /groups/{groupId} {
+        // Allow read and update only if user is a member of the group
+        allow read, update: if request.auth != null && resource.data.members.hasAny([request.auth.uid]);
+        allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+    }
+    match /groups/{groupId}/messages/{messageId} {
+        // Allow read and write only if the user is a member of the group
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+    }
+
   }
 }
