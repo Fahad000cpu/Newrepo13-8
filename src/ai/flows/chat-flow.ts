@@ -46,9 +46,6 @@ const chatFlow = ai.defineFlow(
       prompt: input.message,
       system: SystemPrompt,
       history: history,
-      config: {
-        temperature: 0.7,
-      },
     });
 
     return response.text;
