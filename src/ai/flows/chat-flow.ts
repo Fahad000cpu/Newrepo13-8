@@ -35,7 +35,7 @@ const chatPrompt = ai.definePrompt(
     system: SystemPrompt,
     prompt: `
     {{#each history}}
-      {{#if (eq role 'user')}}
+      {{#if (eq role "user")}}
         User: {{content}}
       {{else}}
         Assistant: {{content}}
