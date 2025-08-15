@@ -3,7 +3,7 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app, db } from "./firebase";
 import { doc, setDoc, query, collection, where, getDocs, writeBatch } from "firebase/firestore";
 
-const VAPID_KEY = "BMRuT33o_wAk_3f248Tvr_H93y1_q3Wp_s0bI-G-J2s5_kG-z6k3w4hY8vK2f7w6z8Y7X9Xy4cE1XwE";
+const VAPID_KEY = "8aDYuWyKPASg2QLRwk154lqgl_H2t3hs4e_wwBTKu6g";
 
 export const requestNotificationPermission = async (userId: string) => {
   if (typeof window === 'undefined' || !('Notification' in window)) {

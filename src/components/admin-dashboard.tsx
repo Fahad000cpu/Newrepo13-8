@@ -27,14 +27,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types";
 import { ProductCard } from "./product-card";
-import { PlusCircle, Edit, Trash2, Send, Bell, MapPin } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Send, Bell, MapPin, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
+import { sendNotificationsToAll } from "@/app/actions/send-notifications";
 
 
 type UserPermissionData = {
@@ -73,6 +74,7 @@ export function AdminDashboard() {
   const [userLoading, setUserLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
   const productForm = useForm<ProductFormValues>({
@@ -172,20 +174,28 @@ export function AdminDashboard() {
   }
 
   async function onNotificationSubmit(data: NotificationFormValues) {
-    // In a real application, this would call a secure backend function
-    // (e.g., a Firebase Cloud Function) that uses the Firebase Admin SDK
-    // to send push notifications to all users with a valid token.
-    console.log("Preparing to send push notification with data:", data);
-    
-    // The function would look something like this:
-    // await sendPushNotifications({ title: data.title, message: data.message });
-
-    const recipients = userData.filter(u => u.notificationToken).length;
-    toast({
-        title: "Notification Sent!",
-        description: `Your message "${data.title}" has been sent to ${recipients} user(s).`
-    })
-    notificationForm.reset({title: "", message: ""});
+    setIsSending(true);
+    try {
+      const result = await sendNotificationsToAll({ title: data.title, message: data.message });
+      if (result.success) {
+        toast({
+          title: "Notification Sent!",
+          description: result.message
+        });
+        notificationForm.reset({ title: "", message: "" });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
+      console.error("Error from notification action:", error);
+      toast({
+        title: "Failed to Send",
+        description: error.message || "There was a problem sending notifications.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
@@ -347,8 +357,8 @@ export function AdminDashboard() {
                                     <FormMessage/>
                                 </FormItem>
                             )}/>
-                            <Button type="submit">
-                                <Send className="mr-2 h-4 w-4"/>
+                            <Button type="submit" disabled={isSending}>
+                                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
                                 Send to All Subscribed Users
                             </Button>
                         </form>
