@@ -27,26 +27,51 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types";
 import { ProductCard } from "./product-card";
-import { PlusCircle, Edit, Trash2, Send, Bell, MapPin, Loader2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { PlusCircle, Edit, Trash2, Send, Bell, MapPin, Loader2, ExternalLink, Users, Image as ImageIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "./ui/badge";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, DocumentData } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
 import { sendNotificationsToAll } from "@/app/actions/send-notifications";
+import Image from "next/image";
 
-
-type UserPermissionData = {
+type UserData = {
     id: string;
     name: string;
+    email?: string;
+    bio?: string;
+    avatarUrl?: string;
     notificationToken?: string;
     location?: {
         lat: number;
         lon: number;
     }
+    totalLikes?: number;
 }
+
+type GroupData = {
+    id: string;
+    groupName: string;
+    groupIconUrl: string;
+    createdBy: string;
+    members: string[];
+}
+
+type StatusData = {
+    id: string;
+    userId: string;
+    username: string;
+    avatarUrl: string;
+    mediaUrl: string;
+    type: 'image' | 'video';
+    createdAt: any;
+}
+
 
 const productFormSchema = z.object({
   id: z.string().optional(),
@@ -69,9 +94,11 @@ type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 
 export function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [productLoading, setProductLoading] = useState(true);
-  const [userData, setUserData] = useState<UserPermissionData[]>([]);
-  const [userLoading, setUserLoading] = useState(true);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [groups, setGroups] = useState<GroupData[]>([]);
+  const [statuses, setStatuses] = useState<StatusData[]>([]);
+  
+  const [dataLoading, setDataLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -86,25 +113,35 @@ export function AdminDashboard() {
   })
 
   useEffect(() => {
-    setProductLoading(true);
-    const productsCol = collection(db, "products");
-    const unsubscribeProducts = onSnapshot(productsCol, (snapshot) => {
-        const productList = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Product[];
-        setProducts(productList);
-        setProductLoading(false);
-    });
+    setDataLoading(true);
 
-    setUserLoading(true);
-    const usersCol = collection(db, "users");
-    const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
-        const userList = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as UserPermissionData[];
-        setUserData(userList);
-        setUserLoading(false);
-    });
+    const unsubscribers = [
+      onSnapshot(collection(db, "products"), (snapshot) => {
+        setProducts(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as Product[]);
+      }),
+      onSnapshot(collection(db, "users"), (snapshot) => {
+        const userList = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as UserData[];
+        setUsers(userList);
+        // Add creator names to groups when users are loaded
+        setGroups(prevGroups => prevGroups.map(g => ({
+            ...g,
+            createdBy: userList.find(u => u.id === g.createdBy)?.name || g.createdBy
+        })));
+      }),
+      onSnapshot(collection(db, "groups"), (snapshot) => {
+        setGroups(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as GroupData[]);
+      }),
+      onSnapshot(collection(db, "statuses"), (snapshot) => {
+        setStatuses(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })) as StatusData[]);
+      }),
+    ];
+
+    // A small delay to ensure all initial data is fetched
+    const timer = setTimeout(() => setDataLoading(false), 1500);
 
     return () => {
-        unsubscribeProducts();
-        unsubscribeUsers();
+        unsubscribers.forEach(unsub => unsub());
+        clearTimeout(timer);
     }
   }, []);
 
@@ -198,13 +235,126 @@ export function AdminDashboard() {
     }
   }
 
+  const DataExplorer = () => (
+     <Card>
+        <CardHeader>
+            <CardTitle>Data Explorer</CardTitle>
+            <CardDescription>Browse live data from your Firestore collections.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {dataLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            ) : (
+            <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="users">
+                    <AccordionTrigger>Users ({users.length})</AccordionTrigger>
+                    <AccordionContent>
+                       <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Avatar</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Bio</TableHead>
+                                    <TableHead className="text-right">Likes</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {users.map(user => (
+                                    <TableRow key={user.id}>
+                                        <TableCell><Avatar><AvatarImage src={user.avatarUrl} /><AvatarFallback>{user.name?.[0]}</AvatarFallback></Avatar></TableCell>
+                                        <TableCell className="font-medium">{user.name}</TableCell>
+                                        <TableCell>{user.email}</TableCell>
+                                        <TableCell className="max-w-xs truncate">{user.bio}</TableCell>
+                                        <TableCell className="text-right">{user.totalLikes || 0}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="groups">
+                    <AccordionTrigger>Groups ({groups.length})</AccordionTrigger>
+                    <AccordionContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Icon</TableHead>
+                                    <TableHead>Group Name</TableHead>
+                                    <TableHead>Created By</TableHead>
+                                    <TableHead className="text-right">Members</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {groups.map(group => (
+                                    <TableRow key={group.id}>
+                                        <TableCell><Avatar><AvatarImage src={group.groupIconUrl} /><AvatarFallback><Users/></AvatarFallback></Avatar></TableCell>
+                                        <TableCell className="font-medium">{group.groupName}</TableCell>
+                                        <TableCell>{users.find(u => u.id === group.createdBy)?.name || group.createdBy}</TableCell>
+                                        <TableCell className="text-right">{group.members.length}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="statuses">
+                    <AccordionTrigger>Statuses ({statuses.length})</AccordionTrigger>
+                    <AccordionContent>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Media</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Posted At</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {statuses.map(status => (
+                                    <TableRow key={status.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-8 w-8"><AvatarImage src={status.avatarUrl} /><AvatarFallback>{status.username?.[0]}</AvatarFallback></Avatar>
+                                                <span>{status.username}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {status.type === 'image' ? 
+                                                    <Image src={status.mediaUrl} alt="Status media" width={40} height={40} className="rounded-md object-cover" /> 
+                                                    : <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center"><ImageIcon/></div> }
+                                                <a href={status.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                    <ExternalLink className="h-4 w-4"/>
+                                                </a>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell><Badge variant="outline">{status.type}</Badge></TableCell>
+                                        <TableCell>{status.createdAt?.toDate().toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+            )}
+        </CardContent>
+    </Card>
+  )
+
   return (
-    <Tabs defaultValue="products">
-        <TabsList className="grid w-full grid-cols-4">
+    <Tabs defaultValue="products" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="locations">Locations</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="explorer">Data Explorer</TabsTrigger>
         </TabsList>
         <TabsContent value="products">
             <Card>
@@ -216,7 +366,7 @@ export function AdminDashboard() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                   {productLoading ? (
+                   {dataLoading ? (
                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[400px] w-full" />)}
                      </div>
@@ -237,7 +387,7 @@ export function AdminDashboard() {
                         ))}
                     </div>
                    )}
-                    {!productLoading && products.length === 0 && (
+                    {!dataLoading && products.length === 0 && (
                         <div className="text-center p-12 text-muted-foreground">
                             <p>No products found.</p>
                             <p>Add a new product to get started.</p>
@@ -260,7 +410,7 @@ export function AdminDashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {userLoading ? (
+                            {dataLoading ? (
                                 [...Array(3)].map((_, i) => (
                                     <TableRow key={i}>
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
@@ -268,7 +418,7 @@ export function AdminDashboard() {
                                     </TableRow>
                                 ))
                             ) : (
-                                userData.map(user => (
+                                users.map(user => (
                                     <TableRow key={user.id}>
                                         <TableCell className="font-medium">{user.name}</TableCell>
                                         <TableCell>
@@ -300,7 +450,7 @@ export function AdminDashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {userLoading ? (
+                            {dataLoading ? (
                                 [...Array(3)].map((_, i) => (
                                     <TableRow key={i}>
                                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
@@ -308,7 +458,7 @@ export function AdminDashboard() {
                                     </TableRow>
                                 ))
                             ) : (
-                                userData.map(user => (
+                                users.map(user => (
                                     <TableRow key={user.id}>
                                         <TableCell className="font-medium">{user.name}</TableCell>
                                         <TableCell>
@@ -365,6 +515,9 @@ export function AdminDashboard() {
                     </Form>
                 </CardContent>
             </Card>
+        </TabsContent>
+        <TabsContent value="explorer">
+           <DataExplorer />
         </TabsContent>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
