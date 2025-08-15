@@ -20,7 +20,6 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const settingsFormSchema = z.object({
     groupName: z.string().min(3, "Name must be at least 3 characters."),
@@ -142,11 +141,29 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         const iconFile = data.groupIcon?.[0];
 
         if (iconFile) {
+            const folder = 'group_icons';
+
+            // Get signature from server
+            const signResponse = await fetch('/api/sign-cloudinary-params', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder }),
+            });
+
+            if (!signResponse.ok) {
+                const errorBody = await signResponse.json();
+                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            }
+            const { signature, timestamp } = await signResponse.json();
+            
             const formData = new FormData();
             formData.append('file', iconFile);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('folder', folder);
+            formData.append('signature', signature);
+            formData.append('timestamp', timestamp.toString());
+            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
             
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -168,9 +185,9 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         toast({ title: "Settings Saved", description: "Group details have been updated."});
         setIsSettingsOpen(false);
         setIconPreview(null);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving settings:", error);
-        toast({ variant: "destructive", title: "Save Failed", description: "Could not update group settings." });
+        toast({ variant: "destructive", title: "Save Failed", description: error.message || "Could not update group settings." });
     } finally {
         setIsSaving(false);
     }
@@ -227,12 +244,30 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         };
         
         if (attachment) {
+            const resourceType = attachment.type;
+            const folder = resourceType === 'image' ? 'group_chat_images' : 'group_chat_videos';
+
+            // Get signature from server
+            const signResponse = await fetch('/api/sign-cloudinary-params', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder }),
+            });
+
+            if (!signResponse.ok) {
+                const errorBody = await signResponse.json();
+                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            }
+            const { signature, timestamp } = await signResponse.json();
+
             const formData = new FormData();
             formData.append('file', attachment.file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('folder', folder);
+            formData.append('signature', signature);
+            formData.append('timestamp', timestamp.toString());
+            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
             
-            const resourceType = attachment.type;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -254,12 +289,12 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
             fileInputRef.current.value = "";
         }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error sending message:", error);
         toast({
             variant: "destructive",
             title: "Send Failed",
-            description: "Could not send your message. Please try again."
+            description: error.message || "Could not send your message. Please try again."
         })
     } finally {
         setIsSending(false);
@@ -429,7 +464,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
                                 <FormLabel>Group Icon</FormLabel>
                                 <div className="flex items-center gap-4">
                                      <Avatar className="h-16 w-16">
-                                        <AvatarImage src={iconPreview || group.groupIconUrl} alt="Group Icon"/>
+                                        <AvatarImage src={iconPreview || group?.groupIconUrl} alt="Group Icon"/>
                                         <AvatarFallback><Users/></AvatarFallback>
                                     </Avatar>
                                     <Button type="button" variant="outline" onClick={() => document.getElementById('group-icon-upload')?.click()}>

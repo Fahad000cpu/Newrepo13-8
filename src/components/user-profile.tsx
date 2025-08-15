@@ -42,7 +42,6 @@ import { useAuth } from "@/context/auth-context";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { Badge } from "./ui/badge";
-import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -117,7 +116,6 @@ export function UserProfile({ userId }: { userId: string }) {
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
-  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
   const imgRef = useRef<HTMLImageElement>(null)
 
   const [userInfo, setUserInfo] = useState<ProfileFormValues | null>(null);
@@ -218,12 +216,30 @@ export function UserProfile({ userId }: { userId: string }) {
         const croppedBlob = await getCroppedImg(imgRef.current, completedCrop);
         if(!croppedBlob) throw new Error('Cropping failed');
 
-        const formData = new FormData();
         const croppedFile = new File([croppedBlob], "avatar.png", { type: "image/png"});
-        formData.append('file', croppedFile);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
         
-        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        const folder = 'avatars';
+        // Get signature from server
+        const signResponse = await fetch('/api/sign-cloudinary-params', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder }),
+        });
+
+        if (!signResponse.ok) {
+            const errorBody = await signResponse.json();
+            throw new Error(errorBody.error || 'Failed to get upload signature.');
+        }
+        const { signature, timestamp } = await signResponse.json();
+        
+        const formData = new FormData();
+        formData.append('file', croppedFile);
+        formData.append('folder', folder);
+        formData.append('signature', signature);
+        formData.append('timestamp', timestamp.toString());
+        formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+        
+        const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
             method: 'POST',
             body: formData,
         });
@@ -245,13 +261,12 @@ export function UserProfile({ userId }: { userId: string }) {
 
         setIsCropDialogOpen(false);
         setImgSrc('');
-        setCroppedImageBlob(null);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating avatar:", error);
         toast({
             title: "Error",
-            description: "Could not update your avatar. Please try again.",
+            description: error.message || "Could not update your avatar. Please try again.",
             variant: "destructive"
         });
     } finally {

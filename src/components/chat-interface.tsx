@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { useAuth } from '@/context/auth-context';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 type Friend = {
   id: string;
@@ -98,12 +97,30 @@ export function ChatInterface({ friend }: { friend: Friend }) {
         };
 
         if (attachment) {
+            const resourceType = attachment.type;
+            const folder = resourceType === 'image' ? 'chat_images' : 'chat_videos';
+
+            // Get signature from server
+            const signResponse = await fetch('/api/sign-cloudinary-params', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder }),
+            });
+
+            if (!signResponse.ok) {
+                const errorBody = await signResponse.json();
+                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            }
+            const { signature, timestamp } = await signResponse.json();
+            
             const formData = new FormData();
             formData.append('file', attachment.file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('folder', folder);
+            formData.append('signature', signature);
+            formData.append('timestamp', timestamp.toString());
+            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
             
-            const resourceType = attachment.type;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -126,12 +143,12 @@ export function ChatInterface({ friend }: { friend: Friend }) {
         if(fileInputRef.current) {
             fileInputRef.current.value = "";
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error sending message:", error);
         toast({
             variant: "destructive",
             title: "Send Failed",
-            description: "Could not send your message. Please try again."
+            description: error.message || "Could not send your message. Please try again."
         })
     } finally {
         setIsSending(false);

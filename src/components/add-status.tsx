@@ -18,7 +18,6 @@ import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/fires
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YoutubePlayer } from './youtube-player';
 import { useAuth } from '@/context/auth-context';
-import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
@@ -104,18 +103,6 @@ export function AddStatus() {
         });
         return;
     }
-
-    if (data.type === 'image' || data.type === 'video') {
-        if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-            console.error("Cloudinary environment variables are not set.");
-            toast({
-                variant: "destructive",
-                title: "Configuration Error",
-                description: "Could not upload file: Cloudinary is not configured.",
-            });
-            return;
-        }
-    }
     
     setIsUploading(true);
 
@@ -152,13 +139,31 @@ export function AddStatus() {
             }
 
             const statusType = data.type;
+            const folder = statusType === 'image' ? 'status_images' : 'status_videos';
             
+            // Get signature from server
+            const signResponse = await fetch('/api/sign-cloudinary-params', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder }),
+            });
+            
+            if (!signResponse.ok) {
+                const errorBody = await signResponse.json();
+                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            }
+            const { signature, timestamp } = await signResponse.json();
+
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-            
+            formData.append('folder', folder);
+            formData.append('signature', signature);
+            formData.append('timestamp', timestamp.toString());
+            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+
+
             const resourceType = statusType;
-            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
             });
@@ -194,12 +199,12 @@ export function AddStatus() {
 
         router.push("/status");
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error uploading file:", error);
         toast({
             variant: "destructive",
             title: "Upload Failed",
-            description: "There was a problem uploading your status. Please try again.",
+            description: error.message || "There was a problem uploading your status. Please try again.",
         });
     } finally {
         setIsUploading(false);
