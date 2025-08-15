@@ -3,7 +3,7 @@ import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { app, db } from "./firebase";
 import { doc, setDoc, query, collection, where, getDocs, writeBatch } from "firebase/firestore";
 
-const VAPID_KEY = "8aDYuWyKPASg2QLRwk154lqgl_H2t3hs4e_wwBTKu6g";
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 export const requestNotificationPermission = async (userId: string) => {
   if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -12,6 +12,10 @@ export const requestNotificationPermission = async (userId: string) => {
   }
   
   try {
+    if (!VAPID_KEY) {
+        console.error("VAPID key is not configured in environment variables.");
+        return;
+    }
     const messaging = getMessaging(app);
     const permission = await Notification.requestPermission();
     

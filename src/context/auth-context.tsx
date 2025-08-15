@@ -30,6 +30,7 @@ interface AuthContextType {
   user: User | null;
   userData: UserData | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, pass: string) => Promise<any>;
   signUp: (email: string, pass: string, name: string) => Promise<any>;
   signOut: () => Promise<void>;
@@ -43,11 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (!user) {
+      if (user) {
+        setIsAdmin(user.uid === process.env.NEXT_PUBLIC_ADMIN_UID);
+      } else {
+        setIsAdmin(false);
         setUserData(null);
         setLoading(false);
       }
@@ -164,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     userData,
     loading,
+    isAdmin,
     signIn,
     signUp,
     signOut,

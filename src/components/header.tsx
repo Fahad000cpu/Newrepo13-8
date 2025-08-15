@@ -22,7 +22,7 @@ import { Notifications } from "./notifications";
 
 export function Header() {
   const pathname = usePathname();
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, isAdmin } = useAuth();
 
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
@@ -33,9 +33,6 @@ export function Header() {
     { href: "https://browserleaks.com/ip", label: "Check IP", icon: Link2, external: true },
   ];
   
-  const adminEmail = 'fahadkhanamrohivi@gmail.com';
-  const isAdmin = user?.email === adminEmail;
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">

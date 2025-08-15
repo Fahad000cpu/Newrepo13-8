@@ -65,12 +65,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   
-  const adminEmail = 'fahadkhanamrohivi@gmail.com';
-  const isAdmin = user && user.email === adminEmail;
-
   const productForm = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
   });

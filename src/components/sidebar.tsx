@@ -12,11 +12,8 @@ import { useAuth } from "@/context/auth-context";
 export function Sidebar() {
   const pathname = usePathname();
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   
-  const adminEmail = 'fahadkhanamrohivi@gmail.com';
-  const isAdmin = user?.email === adminEmail;
-
   const navLinks = [
     { href: "/", label: "Home", icon: Home },
     { href: "/status", label: "Status", icon: Camera },
