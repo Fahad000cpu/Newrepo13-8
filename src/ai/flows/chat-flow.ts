@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit/zod';
+import { z } from 'zod';
 
 export const ChatMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -22,16 +22,16 @@ export const ChatInputSchema = z.object({
 });
 export type ChatInput = z.infer<typeof ChatInputSchema>;
 
-const SystemPrompt = `You are a helpful and friendly chat assistant for an app called Flow v3.
-Flow v3 is a social platform where users can discover, share, and purchase unique products curated by a community.
+const SystemPrompt = `You are a helpful and friendly chat assistant for an app called LinkShare.
+LinkShare is a social platform where users can discover, share, and purchase unique products curated by a community.
 Your role is to assist users with their questions about the app, suggest products, and help them navigate its features.
 Keep your responses concise, friendly, and helpful.`;
 
 const chatPrompt = ai.definePrompt(
   {
     name: 'chatPrompt',
-    input: { schema: ChatInputSchema },
-    output: { schema: z.string() },
+    inputSchema: ChatInputSchema,
+    outputSchema: z.string(),
     system: SystemPrompt,
     prompt: `
     {{#each history}}
