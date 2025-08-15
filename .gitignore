@@ -28,13 +28,14 @@ pnpm-debug.log*
 
 # local env files
 .env*.local
+.env
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-tsconfig.tsbuildinfo
+next-env.d.ts
 
-# pglite data
-dataconnect/.dataconnect/pgliteData
+# studio
+.studio
