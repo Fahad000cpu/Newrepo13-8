@@ -1,48 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Users can read public profiles, but only write to their own document.
-    match /users/{userId} {
-      allow get, list: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
-      
-      // Users can manage their own notifications.
-      match /notifications/{notificationId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-
-    // Products can be read by ANYONE (even logged out), but only admin can write.
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'fahadkhanamrohivi@gmail.com';
-    }
-
-    // Statuses can be created/read by any authenticated user.
-    match /statuses/{statusId} {
-      allow read, create: if request.auth != null;
-      match /likes/{likeId} {
-      	allow read, write: if request.auth != null;
-      }
-    }
-    
-    // Groups can be created by any authenticated user.
-    // Only members can read/update the group or read/write messages.
-    match /groups/{groupId} {
-    	allow read, update: if request.auth != null && request.auth.uid in resource.data.members;
-      allow create: if request.auth != null;
-      
-      match /messages/{messageId} {
-      	allow read, create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
-        allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
-      }
-    }
-    
-    // Chat messages can only be read/written by the two users involved in the chat.
-    match /chats/{chatId}/messages/{messageId} {
-    	allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
-      allow delete: if request.auth != null && resource.data.senderId == request.auth.uid;
+    match /{document=**} {
+      // This rule allows anyone with your database reference to view, edit,
+      // and delete all data in your Firestore database. It is useful for getting
+      // started, but make sure to secure your database correctly before
+      // launching your app.
+      //
+      // Allow reads and writes for the next 30 days
+      allow read, write: if request.time < timestamp.date(2024, 9, 8);
     }
   }
 }
