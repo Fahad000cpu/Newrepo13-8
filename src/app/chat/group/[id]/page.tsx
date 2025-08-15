@@ -20,9 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-
-const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const settingsFormSchema = z.object({
     groupName: z.string().min(3, "Name must be at least 3 characters."),

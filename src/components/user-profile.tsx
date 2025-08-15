@@ -42,6 +42,7 @@ import { useAuth } from "@/context/auth-context";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
 import { Badge } from "./ui/badge";
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -57,10 +58,6 @@ const profileFormSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
-
-const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
-
 
 function centerAspectCrop(
   mediaWidth: number,

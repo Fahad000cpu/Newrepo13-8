@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { useAuth } from '@/context/auth-context';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 type Friend = {
   id: string;
@@ -31,9 +32,6 @@ type Message = {
     mediaUrl?: string;
     mediaType?: 'image' | 'video';
 }
-
-const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
 
 function getYoutubeVideoId(url: string): string | null {
     if (!url) return null;

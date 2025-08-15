@@ -18,6 +18,7 @@ import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/fires
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { YoutubePlayer } from './youtube-player';
 import { useAuth } from '@/context/auth-context';
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
@@ -43,10 +44,6 @@ const youtubeSchema = z.object({
 const statusFormSchema = z.discriminatedUnion("type", [imageSchema, videoSchema, youtubeSchema]);
 
 type StatusFormValues = z.infer<typeof statusFormSchema>;
-
-
-const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
 
 function getYoutubeVideoId(url: string): string | null {
     if (!url) return null;
