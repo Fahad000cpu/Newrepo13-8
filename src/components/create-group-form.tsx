@@ -20,9 +20,6 @@ import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 import Image from 'next/image';
 
-const CLOUDINARY_CLOUD_NAME = "dhbytckit";
-const CLOUDINARY_UPLOAD_PRESET = "Flow v3";
-
 const createGroupFormSchema = z.object({
     groupName: z.string().min(3, { message: "Group name must be at least 3 characters." }),
     groupIcon: z.any().optional(),
@@ -102,11 +99,14 @@ export function CreateGroupForm() {
             // Upload group icon if provided
             const iconFile = data.groupIcon?.[0];
             if (iconFile) {
+                 if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+                    throw new Error("Cloudinary environment variables are not properly configured.");
+                }
                 const formData = new FormData();
                 formData.append('file', iconFile);
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
                 
-                const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -131,9 +131,9 @@ export function CreateGroupForm() {
             toast({ title: "Group Created!", description: "Your new group is ready." });
             router.push(`/chat/group/${groupRef.id}`);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating group:", error);
-            toast({ variant: "destructive", title: "Error", description: "Could not create the group." });
+            toast({ variant: "destructive", title: "Error", description: error.message || "Could not create the group." });
         } finally {
             setLoading(false);
         }

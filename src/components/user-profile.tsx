@@ -218,37 +218,13 @@ export function UserProfile({ userId }: { userId: string }) {
 
         const croppedFile = new File([croppedBlob], "avatar.png", { type: "image/png"});
         
-        if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY) {
+        if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
           throw new Error("Cloudinary environment variables are not properly configured.");
         }
 
         const formData = new FormData();
         formData.append('file', croppedFile);
-        
-        const timestamp = Math.round(Date.now() / 1000);
-        const folder = 'avatars';
-        
-        const paramsToSign = {
-            folder: folder,
-            timestamp: timestamp,
-        };
-        
-        const response = await fetch('/api/sign-string', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paramsToSign }),
-        });
-
-        if (!response.ok) {
-            throw new Error("Failed to sign parameters for Cloudinary upload.");
-        }
-        
-        const { signature } = await response.json();
-        
-        formData.append("folder", folder);
-        formData.append("timestamp", timestamp.toString());
-        formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
-        formData.append("signature", signature);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
         
         const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
             method: 'POST',
