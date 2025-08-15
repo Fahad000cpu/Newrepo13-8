@@ -42,7 +42,7 @@ const chatFlow = ai.defineFlow(
     }));
 
     const response = await generate({
-      model: 'googleai/gemini-1.5-pro',
+      model: 'googleai/gemini-1.5-flash',
       prompt: input.message,
       system: SystemPrompt,
       history: history,
