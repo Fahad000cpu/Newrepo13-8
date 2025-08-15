@@ -141,27 +141,37 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         const iconFile = data.groupIcon?.[0];
 
         if (iconFile) {
-            const folder = 'group_icons';
-
-            // Get signature from server
-            const signResponse = await fetch('/api/sign-cloudinary-params', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folder }),
-            });
-
-            if (!signResponse.ok) {
-                const errorBody = await signResponse.json();
-                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET) {
+              throw new Error("Cloudinary environment variables are not properly configured.");
             }
-            const { signature, timestamp } = await signResponse.json();
-            
+
             const formData = new FormData();
             formData.append('file', iconFile);
-            formData.append('folder', folder);
-            formData.append('signature', signature);
-            formData.append('timestamp', timestamp.toString());
-            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+            
+            const timestamp = Math.round(Date.now() / 1000);
+            const folder = 'group_icons';
+            
+            const paramsToSign = {
+                folder: folder,
+                timestamp: timestamp,
+            };
+            
+            const response = await fetch('/api/sign-string', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paramsToSign }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to sign parameters for Cloudinary upload.");
+            }
+            
+            const { signature } = await response.json();
+            
+            formData.append("folder", folder);
+            formData.append("timestamp", timestamp.toString());
+            formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
+            formData.append("signature", signature);
             
             const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`, {
                 method: 'POST',
@@ -244,29 +254,39 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         };
         
         if (attachment) {
-            const resourceType = attachment.type;
-            const folder = resourceType === 'image' ? 'group_chat_images' : 'group_chat_videos';
-
-            // Get signature from server
-            const signResponse = await fetch('/api/sign-cloudinary-params', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folder }),
-            });
-
-            if (!signResponse.ok) {
-                const errorBody = await signResponse.json();
-                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET) {
+              throw new Error("Cloudinary environment variables are not properly configured.");
             }
-            const { signature, timestamp } = await signResponse.json();
 
             const formData = new FormData();
             formData.append('file', attachment.file);
-            formData.append('folder', folder);
-            formData.append('signature', signature);
-            formData.append('timestamp', timestamp.toString());
-            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
             
+            const timestamp = Math.round(Date.now() / 1000);
+            const folder = attachment.type === 'image' ? 'group_chat_images' : 'group_chat_videos';
+            
+            const paramsToSign = {
+                folder: folder,
+                timestamp: timestamp,
+            };
+            
+            const response = await fetch('/api/sign-string', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paramsToSign }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to sign parameters for Cloudinary upload.");
+            }
+            
+            const { signature } = await response.json();
+            
+            formData.append("folder", folder);
+            formData.append("timestamp", timestamp.toString());
+            formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
+            formData.append("signature", signature);
+            
+            const resourceType = attachment.type;
             const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,

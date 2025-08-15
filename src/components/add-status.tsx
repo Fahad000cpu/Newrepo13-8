@@ -137,32 +137,40 @@ export function AddStatus() {
                  setIsUploading(false);
                  return;
             }
-
-            const statusType = data.type;
-            const folder = statusType === 'image' ? 'status_images' : 'status_videos';
             
-            // Get signature from server
-            const signResponse = await fetch('/api/sign-cloudinary-params', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folder }),
-            });
-            
-            if (!signResponse.ok) {
-                const errorBody = await signResponse.json();
-                throw new Error(errorBody.error || 'Failed to get upload signature.');
+            if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || !process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET) {
+              throw new Error("Cloudinary environment variables are not properly configured.");
             }
-            const { signature, timestamp } = await signResponse.json();
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('folder', folder);
-            formData.append('signature', signature);
-            formData.append('timestamp', timestamp.toString());
-            formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
+            
+            const timestamp = Math.round(Date.now() / 1000);
+            const folder = data.type === 'image' ? 'status_images' : 'status_videos';
+            
+            const paramsToSign = {
+                folder: folder,
+                timestamp: timestamp,
+            };
+            
+            const response = await fetch('/api/sign-string', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paramsToSign }),
+            });
 
+            if (!response.ok) {
+                throw new Error("Failed to sign parameters for Cloudinary upload.");
+            }
 
-            const resourceType = statusType;
+            const { signature } = await response.json();
+
+            formData.append("folder", folder);
+            formData.append("timestamp", timestamp.toString());
+            formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
+            formData.append("signature", signature);
+
+            const resourceType = data.type;
             const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`, {
                 method: 'POST',
                 body: formData,
@@ -177,7 +185,7 @@ export function AddStatus() {
             const cloudinaryData = await uploadResponse.json();
             const mediaUrl = cloudinaryData.secure_url;
             let duration = 5; // default for images
-            if (statusType === 'video') {
+            if (resourceType === 'video') {
                 duration = Math.round(cloudinaryData.duration) || 15;
             }
 
@@ -187,7 +195,7 @@ export function AddStatus() {
                 avatarUrl: avatarUrl,
                 mediaUrl: mediaUrl,
                 createdAt: serverTimestamp(),
-                type: statusType,
+                type: resourceType,
                 duration: duration,
             });
         }
