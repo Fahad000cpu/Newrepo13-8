@@ -114,6 +114,7 @@ export function UserProfile({ userId }: { userId: string }) {
   const { user, userData: authUserData, blockUser, unblockUser } = useAuth();
   
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [imgSrc, setImgSrc] = useState('')
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
@@ -273,7 +274,7 @@ export function UserProfile({ userId }: { userId: string }) {
 
   async function onSubmit(data: ProfileFormValues) {
     if (!isMyProfile) return;
-    setIsUploading(true);
+    setIsSubmitting(true);
     try {
       const userRef = doc(db, "users", userId);
       const { avatarUrl, ...otherData } = data;
@@ -292,7 +293,7 @@ export function UserProfile({ userId }: { userId: string }) {
         variant: "destructive"
       });
     } finally {
-        setIsUploading(false);
+        setIsSubmitting(false);
     }
   }
 
@@ -626,8 +627,8 @@ export function UserProfile({ userId }: { userId: string }) {
                       Cancel
                     </Button>
                   </DialogClose>
-                  <Button type="submit" disabled={isUploading}>
-                    {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                     Save changes
                   </Button>
               </DialogFooter>

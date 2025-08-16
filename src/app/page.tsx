@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, PlusCircle, Search } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Search, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 
@@ -64,6 +64,7 @@ export default function Home() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -131,6 +132,7 @@ export default function Home() {
   }
 
   async function onProductSubmit(data: ProductFormValues) {
+    setIsSubmitting(true);
     try {
       if (editingProduct) {
         const productRef = doc(db, "products", editingProduct.id);
@@ -152,6 +154,8 @@ export default function Home() {
     } catch (error) {
         console.error("Error saving product: ", error);
         toast({ title: "Error", description: "There was a problem saving the product.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -332,7 +336,10 @@ export default function Home() {
                 <DialogClose asChild>
                 <Button type="button" variant="secondary">Cancel</Button>
                 </DialogClose>
-                <Button type="submit">Save Product</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Product
+                </Button>
             </DialogFooter>
             </form>
         </Form>
