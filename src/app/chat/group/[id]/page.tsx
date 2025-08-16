@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, ArrowLeft, Cog, Image as ImageIcon, Loader2, Send, Paperclip, Film, X } from 'lucide-react';
+import { Users, ArrowLeft, Cog, Image as ImageIcon, Loader2, Send, Paperclip, Film, X, Youtube } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from '@/lib/cloudinary';
+import { YoutubePlayer } from '@/components/youtube-player';
 
 const settingsFormSchema = z.object({
     groupName: z.string().min(3, "Name must be at least 3 characters."),
@@ -50,6 +51,13 @@ type Message = {
     timestamp: any;
     mediaUrl?: string;
     mediaType?: 'image' | 'video';
+}
+
+function getYoutubeVideoId(url: string): string | null {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2] && match[2].length === 11) ? match[2] : null;
 }
 
 export default function GroupChatPage({ params }: { params: { id: string } }) {
@@ -342,32 +350,39 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
         )}
       </header>
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-        {messages.map((message) => (
-             <div key={message.id} className={cn("flex items-end gap-2", message.senderId === user?.uid ? "justify-end" : "justify-start")}>
-                 {message.senderId !== user?.uid && (
-                     <Avatar className="h-8 w-8 border">
-                         <AvatarImage src={message.senderAvatar} alt={message.senderName} />
-                         <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
-                     </Avatar>
-                 )}
-                 <div className={cn("max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2", message.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
-                    {message.senderId !== user?.uid && <p className="text-xs font-semibold mb-1">{message.senderName}</p>}
-                    
-                    {message.mediaUrl && message.mediaType === 'image' && (
-                        <Image src={message.mediaUrl} alt="attached image" width={300} height={300} className="rounded-md mb-2 object-cover" />
-                    )}
-                    {message.mediaUrl && message.mediaType === 'video' && (
-                        <video src={message.mediaUrl} controls className="rounded-md mb-2 w-full max-w-[300px]" />
-                    )}
-                    
-                    {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
+        {messages.map((message) => {
+            const youtubeVideoId = getYoutubeVideoId(message.content);
+             return (
+                 <div key={message.id} className={cn("flex items-end gap-2", message.senderId === user?.uid ? "justify-end" : "justify-start")}>
+                     {message.senderId !== user?.uid && (
+                         <Avatar className="h-8 w-8 border">
+                             <AvatarImage src={message.senderAvatar} alt={message.senderName} />
+                             <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
+                         </Avatar>
+                     )}
+                     <div className={cn("max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2", message.senderId === user?.uid ? "bg-primary text-primary-foreground" : "bg-muted")}>
+                        {message.senderId !== user?.uid && <p className="text-xs font-semibold mb-1">{message.senderName}</p>}
+                        
+                        {message.mediaUrl && message.mediaType === 'image' && (
+                            <Image src={message.mediaUrl} alt="attached image" width={300} height={300} className="rounded-md mb-2 object-cover" />
+                        )}
+                        {message.mediaUrl && message.mediaType === 'video' && (
+                            <video src={message.mediaUrl} controls className="rounded-md mb-2 w-full max-w-[300px]" />
+                        )}
+                        
+                        {youtubeVideoId ? (
+                            <YoutubePlayer videoId={youtubeVideoId} />
+                        ) : (
+                            message.content && <p className="whitespace-pre-wrap">{message.content}</p>
+                        )}
 
-                    <p className="text-xs text-right mt-1 opacity-70">
-                        {message.timestamp?.toDate ? message.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}
-                    </p>
+                        <p className="text-xs text-right mt-1 opacity-70">
+                            {message.timestamp?.toDate ? message.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Sending...'}
+                        </p>
+                    </div>
                 </div>
-            </div>
-        ))}
+            )
+        })}
          <div ref={messagesEndRef} />
       </main>
       <footer className="border-t bg-background p-2">
@@ -407,7 +422,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
               disabled={!canSendMessage || isSending}
             />
             <Button type="submit" size="icon" disabled={!canSendMessage || isSending || (newMessage.trim() === "" && !attachment)}>
-              {isSending ? <Loader2 className="animate-spin" /> : <Send />}
+              {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send />}
               <span className="sr-only">Send Message</span>
             </Button>
           </form>
@@ -440,7 +455,7 @@ export default function GroupChatPage({ params }: { params: { id: string } }) {
                     <FormField
                         control={form.control}
                         name="groupIcon"
-                        render={() => (
+                        render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Group Icon</FormLabel>
                                 <div className="flex items-center gap-4">

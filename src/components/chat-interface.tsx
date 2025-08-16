@@ -37,7 +37,7 @@ function getYoutubeVideoId(url: string): string | null {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    return (match && match[2] && match[2].length === 11) ? match[2] : null;
 }
 
 
@@ -393,7 +393,7 @@ export function ChatInterface({ friend }: { friend: Friend }) {
               disabled={isSending || isBlockedByYou}
             />
             <Button type="submit" size="icon" disabled={isSending || (newMessage.trim() === "" && !attachment) || isBlockedByYou}>
-              {isSending ? <Loader2 className="animate-spin" /> : <Send />}
+              {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send />}
               <span className="sr-only">Send Message</span>
             </Button>
           </form>
@@ -417,7 +417,7 @@ export function ChatInterface({ friend }: { friend: Friend }) {
                     <Button variant="secondary">Cancel</Button>
                 </DialogClose>
                 <Button onClick={handleYoutubeShare} disabled={isSending}>
-                    {isSending ? <Loader2 className="animate-spin" /> : "Share Video"}
+                    {isSending ? <Loader2 className="mr-2 animate-spin" /> : "Share Video"}
                 </Button>
             </DialogFooter>
         </DialogContent>
