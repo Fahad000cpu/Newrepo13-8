@@ -1,5 +1,5 @@
 specVersion: "v1"
-serviceId: "studio"
+serviceId: "flow-v4"
 location: "us-central1"
 schema:
   source: "./schema"
@@ -7,6 +7,6 @@ schema:
     postgresql:
       database: "fdcdb"
       cloudSql:
-        instanceId: "studio-fdc"
+        instanceId: "flow-v4-fdc"
       # schemaValidation: "COMPATIBLE"
 connectorDirs: ["./connector"]

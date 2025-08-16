@@ -13,6 +13,6 @@
   "apphosting": {
     "source": ".",
     "region": "us-central1",
-    "project": "linkshare-g906j"
+    "project": "flow-v4"
   }
 }
