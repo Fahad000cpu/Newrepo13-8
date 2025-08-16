@@ -65,7 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userRef = doc(db, "users", user.uid);
         const unsubscribe = onSnapshot(userRef, (doc) => {
             if (doc.exists()) {
-                setUserData(doc.data());
+                const data = doc.data();
+                setUserData({
+                  ...data,
+                  avatarUrl: user.photoURL ?? data.avatarUrl,
+                });
             }
             setLoading(false);
         });
