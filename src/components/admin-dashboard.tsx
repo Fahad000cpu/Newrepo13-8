@@ -35,7 +35,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "./ui/badge";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, DocumentData } from "firebase/firestore";
+import { collection, onSnapshot, doc, deleteDoc, addDoc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
 import { sendNotificationsToAll } from "@/app/actions/send-notifications";
 import Image from "next/image";
@@ -100,6 +100,7 @@ export function AdminDashboard() {
   
   const [dataLoading, setDataLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
@@ -186,6 +187,7 @@ export function AdminDashboard() {
   }
 
   async function onProductSubmit(data: ProductFormValues) {
+    setIsSubmitting(true);
     try {
       if (editingProduct) {
         const productRef = doc(db, "products", editingProduct.id);
@@ -207,6 +209,8 @@ export function AdminDashboard() {
     } catch (error) {
         console.error("Error saving product: ", error);
         toast({ title: "Error", description: "There was a problem saving the product.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -264,15 +268,23 @@ export function AdminDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {users.map(user => (
-                                    <TableRow key={user.id}>
-                                        <TableCell><Avatar><AvatarImage src={user.avatarUrl} /><AvatarFallback>{user.name?.[0]}</AvatarFallback></Avatar></TableCell>
-                                        <TableCell className="font-medium">{user.name}</TableCell>
-                                        <TableCell>{user.email}</TableCell>
-                                        <TableCell className="max-w-xs truncate">{user.bio}</TableCell>
-                                        <TableCell className="text-right">{user.totalLikes || 0}</TableCell>
+                                {users.length > 0 ? (
+                                    users.map(user => (
+                                        <TableRow key={user.id}>
+                                            <TableCell><Avatar><AvatarImage src={user.avatarUrl} /><AvatarFallback>{user.name?.[0]}</AvatarFallback></Avatar></TableCell>
+                                            <TableCell className="font-medium">{user.name}</TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell className="max-w-xs truncate">{user.bio}</TableCell>
+                                            <TableCell className="text-right">{user.totalLikes || 0}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        No users found.
+                                        </TableCell>
                                     </TableRow>
-                                ))}
+                                )}
                             </TableBody>
                         </Table>
                     </AccordionContent>
@@ -290,14 +302,22 @@ export function AdminDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {groups.map(group => (
-                                    <TableRow key={group.id}>
-                                        <TableCell><Avatar><AvatarImage src={group.groupIconUrl} /><AvatarFallback><Users/></AvatarFallback></Avatar></TableCell>
-                                        <TableCell className="font-medium">{group.groupName}</TableCell>
-                                        <TableCell>{users.find(u => u.id === group.createdBy)?.name || group.createdBy}</TableCell>
-                                        <TableCell className="text-right">{group.members.length}</TableCell>
+                                {groups.length > 0 ? (
+                                    groups.map(group => (
+                                        <TableRow key={group.id}>
+                                            <TableCell><Avatar><AvatarImage src={group.groupIconUrl} /><AvatarFallback><Users/></AvatarFallback></Avatar></TableCell>
+                                            <TableCell className="font-medium">{group.groupName}</TableCell>
+                                            <TableCell>{users.find(u => u.id === group.createdBy)?.name || group.createdBy}</TableCell>
+                                            <TableCell className="text-right">{group.members.length}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        No groups found.
+                                        </TableCell>
                                     </TableRow>
-                                ))}
+                                )}
                             </TableBody>
                         </Table>
                     </AccordionContent>
@@ -315,28 +335,36 @@ export function AdminDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {statuses.map(status => (
-                                    <TableRow key={status.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Avatar className="h-8 w-8"><AvatarImage src={status.avatarUrl} /><AvatarFallback>{status.username?.[0]}</AvatarFallback></Avatar>
-                                                <span>{status.username}</span>
-                                            </div>
+                                {statuses.length > 0 ? (
+                                    statuses.map(status => (
+                                        <TableRow key={status.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Avatar className="h-8 w-8"><AvatarImage src={status.avatarUrl} /><AvatarFallback>{status.username?.[0]}</AvatarFallback></Avatar>
+                                                    <span>{status.username}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    {status.type === 'image' ? 
+                                                        <Image src={status.mediaUrl} alt="Status media" width={40} height={40} className="rounded-md object-cover" /> 
+                                                        : <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center"><ImageIcon/></div> }
+                                                    <a href={status.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                                        <ExternalLink className="h-4 w-4"/>
+                                                    </a>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell><Badge variant="outline">{status.type}</Badge></TableCell>
+                                            <TableCell>{status.createdAt?.toDate().toLocaleString()}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                     <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                        No statuses found.
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {status.type === 'image' ? 
-                                                    <Image src={status.mediaUrl} alt="Status media" width={40} height={40} className="rounded-md object-cover" /> 
-                                                    : <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center"><ImageIcon/></div> }
-                                                <a href={status.mediaUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                                                    <ExternalLink className="h-4 w-4"/>
-                                                </a>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell><Badge variant="outline">{status.type}</Badge></TableCell>
-                                        <TableCell>{status.createdAt?.toDate().toLocaleString()}</TableCell>
                                     </TableRow>
-                                ))}
+                                )}
                             </TableBody>
                         </Table>
                     </AccordionContent>
@@ -417,7 +445,7 @@ export function AdminDashboard() {
                                         <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                                     </TableRow>
                                 ))
-                            ) : (
+                            ) : users.length > 0 ? (
                                 users.map(user => (
                                     <TableRow key={user.id}>
                                         <TableCell className="font-medium">{user.name}</TableCell>
@@ -429,6 +457,12 @@ export function AdminDashboard() {
                                         </TableCell>
                                     </TableRow>
                                 ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={2} className="h-24 text-center">
+                                    No users found.
+                                    </TableCell>
+                                </TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -457,7 +491,7 @@ export function AdminDashboard() {
                                         <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                                     </TableRow>
                                 ))
-                            ) : (
+                            ) : users.length > 0 ? (
                                 users.map(user => (
                                     <TableRow key={user.id}>
                                         <TableCell className="font-medium">{user.name}</TableCell>
@@ -475,6 +509,12 @@ export function AdminDashboard() {
                                         </TableCell>
                                     </TableRow>
                                 ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={2} className="h-24 text-center">
+                                    No users with location data found.
+                                    </TableCell>
+                                </TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -545,7 +585,7 @@ export function AdminDashboard() {
                     name="price"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Price (USD)</FormLabel>
+                        <FormLabel>Price (INR)</FormLabel>
                         <FormControl>
                         <Input type="number" placeholder="e.g. 45.00" {...field} />
                         </FormControl>
@@ -609,7 +649,10 @@ export function AdminDashboard() {
                     <DialogClose asChild>
                     <Button type="button" variant="secondary">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">Save Product</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Save Product
+                    </Button>
                 </DialogFooter>
                 </form>
             </Form>
