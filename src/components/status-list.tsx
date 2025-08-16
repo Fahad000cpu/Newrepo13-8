@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle } from "lucide-react";
 import { StatusViewer } from "./status-viewer";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, Timestamp, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp, orderBy, documentId } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
 
 export type Story = {
@@ -37,49 +37,59 @@ export function StatusList() {
       try {
         const twentyFourHoursAgo = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
         
-        // First, get all public users
-        const usersRef = collection(db, "users");
-        const publicUsersQuery = query(usersRef, where("isPrivate", "==", false));
-        const publicUsersSnapshot = await getDocs(publicUsersQuery);
-        const publicUserIds = publicUsersSnapshot.docs.map(doc => doc.id);
-
-        if (publicUserIds.length === 0) {
-            setStoriesByUser([]);
-            setLoading(false);
-            return;
-        }
-
+        // 1. Get all recent statuses
         const statusesRef = collection(db, "statuses");
-        const q = query(
+        const statusesQuery = query(
           statusesRef,
           where("createdAt", ">=", twentyFourHoursAgo),
-          where("userId", "in", publicUserIds), // Only fetch statuses from public users
           orderBy("createdAt", "asc")
         );
+        const statusesSnapshot = await getDocs(statusesQuery);
 
-        const querySnapshot = await getDocs(q);
+        if (statusesSnapshot.empty) {
+          setStoriesByUser([]);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Get the unique user IDs from these statuses
+        const userIds = [...new Set(statusesSnapshot.docs.map(doc => doc.data().userId))];
+
+        // 3. Fetch the user data for these specific users
+        const usersRef = collection(db, "users");
+        // Firestore 'in' query can handle up to 30 items. If more users, chunking would be needed.
+        const usersQuery = query(usersRef, where(documentId(), "in", userIds));
+        const usersSnapshot = await getDocs(usersQuery);
+        
+        const usersData: { [key: string]: { name: string, avatarUrl: string, isPrivate: boolean } } = {};
+        usersSnapshot.forEach(doc => {
+            const data = doc.data();
+            usersData[doc.id] = {
+                name: data.name || 'Anonymous',
+                avatarUrl: data.avatarUrl || `https://placehold.co/100x100.png`,
+                isPrivate: data.isPrivate || false,
+            };
+        });
+
+        // 4. Group stories by user, but only for public users
         const groupedStories: Record<string, UserWithStories> = {};
 
-        querySnapshot.forEach((doc) => {
+        statusesSnapshot.forEach((doc) => {
           const data = doc.data();
           const userId = data.userId;
-          const createdAt = data.createdAt as Timestamp;
-
-          if (!groupedStories[userId]) {
-            // Find the user data from our initial public user fetch
-            const userDoc = publicUsersSnapshot.docs.find(d => d.id === userId);
-            if (userDoc) {
-                const userData = userDoc.data();
+          const user = usersData[userId];
+          
+          // Only process statuses from public users
+          if (user && !user.isPrivate) {
+             if (!groupedStories[userId]) {
                 groupedStories[userId] = {
                     userId: userId,
-                    username: userData.name,
-                    avatarUrl: userData.avatarUrl,
+                    username: user.name,
+                    avatarUrl: user.avatarUrl,
                     stories: [],
                 };
             }
-          }
-          
-          if(groupedStories[userId]) {
+            const createdAt = data.createdAt as Timestamp;
             groupedStories[userId].stories.push({
                 id: doc.id,
                 type: data.type,
