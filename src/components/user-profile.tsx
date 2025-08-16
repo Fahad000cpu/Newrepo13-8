@@ -48,7 +48,6 @@ const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   bio: z.string().max(160, { message: "Bio cannot be more than 160 characters." }).optional(),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
   isPrivate: z.boolean().default(false),
   twitter: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   instagram: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
@@ -56,6 +55,7 @@ const profileFormSchema = z.object({
   youtube: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   facebook: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   totalLikes: z.number().optional(),
+  avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -277,8 +277,9 @@ export function UserProfile({ userId }: { userId: string }) {
     setIsSubmitting(true);
     try {
       const userRef = doc(db, "users", userId);
-      const { avatarUrl, ...otherData } = data;
-      await setDoc(userRef, otherData, { merge: true });
+      // Omit avatarUrl from the data object being sent to Firestore
+      const { avatarUrl, ...updateData } = data;
+      await setDoc(userRef, updateData, { merge: true });
 
       toast({
         title: "Profile Updated",
