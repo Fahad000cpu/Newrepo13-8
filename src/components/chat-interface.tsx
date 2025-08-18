@@ -130,19 +130,24 @@ export function ChatInterface({ friend }: { friend: Friend }) {
 
         const docRef = await addDoc(messagesCol, messageData);
 
-        // After sending message, send a notification
-        const notificationsRef = collection(db, "users", friend.id, "notifications");
-        await addDoc(notificationsRef, {
-            fromUserId: user.uid,
-            fromUserName: userData.name || "A user",
-            fromUserAvatar: userData.avatarUrl || "",
-            type: "new_message",
-            message: messageText || (attachment ? `${attachment.type === 'image' ? 'Sent an image' : 'Sent a video'}` : "Sent a new message"),
-            entityId: docRef.id,
-            timestamp: serverTimestamp(),
-            isRead: false
-        });
-
+        // After sending message, try to send a notification.
+        // Wrap this in its own try/catch so that if it fails, the user doesn't get an error.
+        try {
+            const notificationsRef = collection(db, "users", friend.id, "notifications");
+            await addDoc(notificationsRef, {
+                fromUserId: user.uid,
+                fromUserName: userData.name || "A user",
+                fromUserAvatar: userData.avatarUrl || "",
+                type: "new_message",
+                message: messageText || (attachment ? `${attachment.type === 'image' ? 'Sent an image' : 'Sent a video'}` : "Sent a new message"),
+                entityId: docRef.id,
+                timestamp: serverTimestamp(),
+                isRead: false
+            });
+        } catch (notificationError) {
+            console.error("Failed to send notification, but message was sent successfully:", notificationError);
+            // Do not show a toast to the user.
+        }
 
         setNewMessage("");
         setAttachment(null);
