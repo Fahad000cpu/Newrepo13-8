@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Edit, Mail, Link as LinkIcon, Twitter, Instagram, Github, Palette, Youtube, Facebook, Shield, ShieldOff, UploadCloud, X, Loader2, Star, BadgeCheck, Crown } from "lucide-react";
+import { Edit, Mail, Link as LinkIcon, Instagram, Github, Palette, Youtube, Facebook, Shield, ShieldOff, UploadCloud, X, Loader2, Star, BadgeCheck, Crown } from "lucide-react";
 import { useTheme } from "next-themes";
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -276,7 +276,11 @@ export function UserProfile({ userId }: { userId: string }) {
     setIsSubmitting(true);
     try {
       const userRef = doc(db, "users", userId);
-      await updateDoc(userRef, data);
+      const { avatarUrl, ...updateData } = userInfo ?? {}; // Exclude avatarUrl
+      await updateDoc(userRef, {
+        ...updateData,
+        ...data,
+      });
 
       toast({
         title: "Profile Updated",
