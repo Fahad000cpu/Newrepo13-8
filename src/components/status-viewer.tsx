@@ -3,22 +3,23 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { X, Heart, Share2, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Heart, Share2, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { UserWithStories } from "./status-list";
 import { YoutubePlayer } from "./youtube-player";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { db } from "@/lib/firebase";
-import { doc, runTransaction, serverTimestamp, collection, addDoc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, runTransaction, serverTimestamp, collection, addDoc, getDoc, updateDoc, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
+import { StatusViewersList } from "./status-viewers-list";
 
 function getYoutubeVideoId(url: string): string | null {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2] && match[2].length === 11) ? match[2] : null;
+    return (match && match[2].length === 11) ? match[2] : null;
 }
 
 interface StatusViewerProps {
@@ -33,6 +34,9 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [viewCount, setViewCount] = useState(0);
+  const [isViewersListOpen, setIsViewersListOpen] = useState(false);
+
   const likeAnimationTimeoutRef = useRef<NodeJS.Timeout>();
   const lastTap = useRef(0);
 
@@ -41,6 +45,8 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
 
   const currentStory = user.stories[currentStoryIndex];
   const youtubeVideoId = currentStory ? getYoutubeVideoId(currentStory.url) : null;
+  
+  const isMyStatus = currentUser?.uid === user.userId;
   
   const goToNextStory = useCallback(() => {
     if (currentStoryIndex < user.stories.length - 1) {
@@ -57,16 +63,60 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   };
   
   useEffect(() => {
-      const checkLikeStatus = async () => {
-          if (!currentUser || !currentStory) return;
-          const likeRef = doc(db, "statuses", currentStory.id, "likes", currentUser.uid);
-          const likeSnap = await getDoc(likeRef);
-          setIsLiked(likeSnap.exists());
+    if (!currentUser || !currentStory) return;
+
+    const checkLikeStatus = async () => {
+      const likeRef = doc(db, "statuses", currentStory.id, "likes", currentUser.uid);
+      const likeSnap = await getDoc(likeRef);
+      setIsLiked(likeSnap.exists());
+    }
+    
+    const recordView = async () => {
+      // Don't record view for my own status
+      if (isMyStatus) {
+         const statusRef = doc(db, "statuses", currentStory.id);
+         const statusSnap = await getDoc(statusRef);
+         if (statusSnap.exists()) {
+             setViewCount(statusSnap.data().viewCount || 0);
+         }
+         return;
+      };
+
+      const viewRef = doc(db, "statuses", currentStory.id, "views", currentUser.uid);
+      const viewSnap = await getDoc(viewRef);
+      
+      if (!viewSnap.exists()) {
+        try {
+          const statusRef = doc(db, "statuses", currentStory.id);
+          const batch = writeBatch(db);
+          
+          batch.set(viewRef, {
+              userId: currentUser.uid,
+              viewedAt: serverTimestamp(),
+          });
+          
+          const statusSnap = await getDoc(statusRef);
+          const currentViewCount = statusSnap.data()?.viewCount || 0;
+          batch.update(statusRef, { viewCount: currentViewCount + 1 });
+          
+          await batch.commit();
+          setViewCount(currentViewCount + 1);
+        } catch (error) {
+            console.error("Error recording view:", error);
+        }
+      } else {
+        const statusRef = doc(db, "statuses", currentStory.id);
+        const statusSnap = await getDoc(statusRef);
+        if (statusSnap.exists()) {
+           setViewCount(statusSnap.data().viewCount || 0);
+        }
       }
-      if(currentStory) {
-        checkLikeStatus();
-      }
-  }, [currentStory, currentUser]);
+    }
+
+    checkLikeStatus();
+    recordView();
+
+  }, [currentStory, currentUser, isMyStatus]);
 
 
   useEffect(() => {
@@ -77,6 +127,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
     setProgress(0);
     setIsPaused(false);
     setIsLiked(false);
+    setViewCount(0);
   }, [currentStoryIndex, user]);
 
   useEffect(() => {
@@ -188,7 +239,7 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   const handleShare = async () => {
     const shareData = {
       title: `Check out ${user.username}'s status!`,
-      text: `See what ${user.username} shared on Flow v3.`,
+      text: `See what ${user.username} shared on Flow v6.`,
       url: window.location.origin,
     };
     
@@ -229,9 +280,10 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
   if (!currentStory) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center animate-in fade-in-0">
+    <>
+    <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center animate-in fade-in-0 select-none">
       <div 
-        className="relative w-full max-w-md h-full max-h-dvh md:max-h-[90vh] bg-neutral-900 rounded-lg overflow-hidden shadow-2xl select-none"
+        className="relative w-full max-w-md h-full max-h-dvh md:max-h-[90vh] bg-neutral-900 rounded-lg overflow-hidden shadow-2xl"
         onPointerDown={() => !youtubeVideoId && setIsPaused(true)} onPointerUp={() => !youtubeVideoId && setIsPaused(false)}
       >
         {/* Progress Bars */}
@@ -354,7 +406,23 @@ export function StatusViewer({ user, onClose, onNextUser }: StatusViewerProps) {
                 <Share2 className="h-7 w-7"/>
             </Button>
         </div>
+        
+        {isMyStatus && (
+            <div className="absolute bottom-5 left-5 z-40">
+                <Button variant="ghost" className="text-white bg-black/30 hover:bg-black/50" onClick={() => setIsViewersListOpen(true)}>
+                    <Eye className="mr-2 h-4 w-4"/>
+                    Viewed by {viewCount}
+                </Button>
+            </div>
+        )}
       </div>
     </div>
+    {isMyStatus && isViewersListOpen && (
+        <StatusViewersList
+            statusId={currentStory.id}
+            onClose={() => setIsViewersListOpen(false)}
+        />
+    )}
+    </>
   );
 }

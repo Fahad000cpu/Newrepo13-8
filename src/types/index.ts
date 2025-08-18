@@ -9,6 +9,7 @@ export type Product = {
   tags: string[];
   dataAiHint?: string;
   buyUrl?: string;
+  viewCount?: number;
 };
 
 export type Ad = {
