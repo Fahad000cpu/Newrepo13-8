@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle } from "lucide-react";
 import { StatusViewer } from "./status-viewer";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, Timestamp, orderBy, documentId } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp, orderBy, documentId, writeBatch, deleteDoc, doc } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
 
 export type Story = {
@@ -115,6 +115,35 @@ export function StatusList() {
       }
     }
 
+    // Function to delete old statuses
+    async function cleanupOldStatuses() {
+      try {
+        const twentyFourHoursAgo = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+        const statusesRef = collection(db, "statuses");
+        const oldStatusesQuery = query(statusesRef, where("createdAt", "<", twentyFourHoursAgo));
+        const oldStatusesSnapshot = await getDocs(oldStatusesQuery);
+
+        if (oldStatusesSnapshot.empty) {
+          return; // No old statuses to delete
+        }
+        
+        console.log(`Found ${oldStatusesSnapshot.size} old statuses to delete.`);
+
+        // Firestore batch writes are limited, but for this use case it should be fine.
+        // For very large scale, a scheduled cloud function with TTL would be better.
+        const batch = writeBatch(db);
+        oldStatusesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log("Successfully deleted old statuses.");
+
+      } catch (error) {
+        console.error("Error cleaning up old statuses:", error);
+      }
+    }
+
+    cleanupOldStatuses();
     fetchStatuses();
   }, []);
 
