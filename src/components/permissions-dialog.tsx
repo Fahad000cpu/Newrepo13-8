@@ -94,7 +94,7 @@ export function PermissionsDialog() {
         <DialogHeader>
           <DialogTitle>Enhance Your Experience</DialogTitle>
           <DialogDescription>
-            Allow notifications and location access to get the most out of Flow v3. We'll only use them to provide relevant updates and content.
+            Allow notifications and location access to get the most out of Flow V6. We'll only use them to provide relevant updates and content.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col space-y-4 my-4">

@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -17,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Flow v3",
+  title: "Flow V6",
   description: "Discover, share, and purchase products curated by your network.",
   manifest: "/manifest.json",
   icons: [{ rel: "icon", url: "/favicon.ico" }],

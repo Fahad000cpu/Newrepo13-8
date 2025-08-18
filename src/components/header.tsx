@@ -56,7 +56,7 @@ export function Header() {
             <rect width="256" height="256" fill="none"></rect>
             <path d="M128,24a104,104,0,1,0,104,104A104.2,104.2,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a48,48,0,1,1-48-48,48,48,0,0,1,48,48Z" fill="currentColor" className="text-primary-foreground/80"></path>
           </svg>
-          <span className="font-headline text-lg font-bold">Flow v3</span>
+          <span className="font-headline text-lg font-bold">Flow V6</span>
         </Link>
         
         {/* Desktop Nav */}
