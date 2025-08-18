@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        setIsAdmin(user.uid === process.env.NEXT_PUBLIC_ADMIN_UID);
+        setIsAdmin(user.email === "fahadkhanamrohivi@gmail.com");
       } else {
         setIsAdmin(false);
         setUserData(null);
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: displayName,
         email: email,
         avatarUrl: `https://placehold.co/100x100.png`,
-        bio: `Welcome to my Flow v3 profile!`,
+        bio: `Welcome to my Flow v6 profile!`,
         isPrivate: false, // Default to public profile
         twitter: "",
         instagram: "",
