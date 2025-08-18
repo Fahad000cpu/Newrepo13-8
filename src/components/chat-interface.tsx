@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { addDoc, collection, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, DocumentData } from "firebase/firestore";
+import { addDoc, collection, query, orderBy, onSnapshot, serverTimestamp, doc, deleteDoc, DocumentData, getDoc } from "firebase/firestore";
 import { YoutubePlayer } from './youtube-player';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
@@ -34,7 +34,7 @@ type Message = {
 }
 
 function getYoutubeVideoId(url: string): string | null {
-    if (!url) return null;
+    if (!url || typeof url !== 'string') return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2] && match[2].length === 11) ? match[2] : null;
@@ -82,7 +82,7 @@ export function ChatInterface({ friend }: { friend: Friend }) {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!user || (newMessage.trim() === "" && !attachment)) return;
+    if (!user || !userData || (newMessage.trim() === "" && !attachment)) return;
     if (isBlockedByYou) {
         toast({ variant: "destructive", title: "User is blocked.", description: "You must unblock this user to send a message." });
         return;
@@ -99,8 +99,9 @@ export function ChatInterface({ friend }: { friend: Friend }) {
     setIsSending(true);
 
     try {
+        const messageText = newMessage;
         const messageData: DocumentData = {
-            content: newMessage,
+            content: messageText,
             senderId: user.uid,
             timestamp: serverTimestamp(),
         };
@@ -127,7 +128,21 @@ export function ChatInterface({ friend }: { friend: Friend }) {
         const chatId = getChatCollectionId(user.uid, friend.id);
         const messagesCol = collection(db, "chats", chatId, "messages");
 
-        await addDoc(messagesCol, messageData);
+        const docRef = await addDoc(messagesCol, messageData);
+
+        // After sending message, send a notification
+        const notificationsRef = collection(db, "users", friend.id, "notifications");
+        await addDoc(notificationsRef, {
+            fromUserId: user.uid,
+            fromUserName: userData.name || "A user",
+            fromUserAvatar: userData.avatarUrl || "",
+            type: "new_message",
+            message: messageText || (attachment ? `${attachment.type === 'image' ? 'Sent an image' : 'Sent a video'}` : "Sent a new message"),
+            entityId: docRef.id,
+            timestamp: serverTimestamp(),
+            isRead: false
+        });
+
 
         setNewMessage("");
         setAttachment(null);

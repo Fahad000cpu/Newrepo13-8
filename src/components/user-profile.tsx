@@ -36,7 +36,7 @@ import { Textarea } from "./ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { Skeleton } from "./ui/skeleton";
 import { useAuth } from "@/context/auth-context";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop'
@@ -55,7 +55,6 @@ const profileFormSchema = z.object({
   youtube: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   facebook: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   totalLikes: z.number().optional(),
-  avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -121,7 +120,7 @@ export function UserProfile({ userId }: { userId: string }) {
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null)
 
-  const [userInfo, setUserInfo] = useState<ProfileFormValues | null>(null);
+  const [userInfo, setUserInfo] = useState<(ProfileFormValues & { avatarUrl?: string }) | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -139,7 +138,7 @@ export function UserProfile({ userId }: { userId: string }) {
     
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
-        const userData = docSnap.data() as ProfileFormValues;
+        const userData = docSnap.data() as ProfileFormValues & { avatarUrl?: string };
         setUserInfo(userData);
         form.reset(userData);
       }
@@ -249,7 +248,7 @@ export function UserProfile({ userId }: { userId: string }) {
         const newAvatarUrl = cloudinaryData.secure_url;
 
         const userRef = doc(db, "users", userId);
-        await setDoc(userRef, { avatarUrl: newAvatarUrl }, { merge: true });
+        await updateDoc(userRef, { avatarUrl: newAvatarUrl });
 
         toast({
             title: "Avatar Updated!",
@@ -277,9 +276,7 @@ export function UserProfile({ userId }: { userId: string }) {
     setIsSubmitting(true);
     try {
       const userRef = doc(db, "users", userId);
-      // Omit avatarUrl from the data object being sent to Firestore
-      const { avatarUrl, ...updateData } = data;
-      await setDoc(userRef, updateData, { merge: true });
+      await updateDoc(userRef, data);
 
       toast({
         title: "Profile Updated",
